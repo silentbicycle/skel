@@ -1,0 +1,37 @@
+#!/bin/sh
+
+function check() {
+    local exp=$1
+    shift
+    local got=$*
+    if [ "${exp}" != "${got}" ]; then
+        echo "expected '${exp}', got '${got}'"
+    else
+        printf "."
+    fi
+}
+
+# base case
+check "foo" $(echo "#{FOO}" | env FOO="foo" ./skel)
+
+# "skel -" should also read template from stdin
+check "foo" $(echo "#{FOO}" | env FOO="foo" ./skel -)
+
+# allow changing variable markers
+check "foo" $(echo "#{{FOO}}" | env FOO="foo" ./skel -o "#{{" -c "}}")
+
+# substitution should not add superfluous whitespace
+check "foobar" $(echo "#{FOO}#{BAR}" | env FOO="foo" BAR="bar" ./skel)
+
+# check escaping
+check "#{FOO}" $(echo "\#{FOO}" | env FOO="foo" ./skel)
+
+# check substitution of undef vars
+check "undef_" $(echo "undef_#{UNKNOWN}" | ./skel)
+
+# check default file usage
+check "foobar" $(echo "#{FOO}#{BAR}" | ./skel -d example_defaults)
+
+# check substitution of undef vars
+echo "undef_#{UNKNOWN}" | ./skel -e >/dev/null 2>/dev/null && echo "should fail"
+echo tests complete
