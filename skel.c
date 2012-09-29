@@ -88,7 +88,7 @@ static void sub_line(const char *line) {
             /* This could be factored better... */
             if (c == escape) {
                 buf[buf_i++] = line[++i];
-            } else if (c == sub_open[0]) { /* check for 'sub_open' match */
+            } else if (c == sub_open[0]) {     /* check for 'sub_open' match */
                 for (sub_i = 0; sub_open[sub_i] == line[i + sub_i]; sub_i++) {
                     ;
                 }
@@ -107,7 +107,7 @@ static void sub_line(const char *line) {
                 }
             } else {
                 buf[buf_i++] = c;
-                if (buf_i == BUF_SZ - 1) { /* full; flush. */
+                if (buf_i == BUF_SZ - 1) {     /* full; flush. */
                     buf[buf_i] = '\0';
                     printf("%s", buf);
                     buf_i = 0;
@@ -125,7 +125,7 @@ static void sub_line(const char *line) {
                     print_env_var(var_buf);
                     var_i = sub_i = 0;
                     mode = MODE_VERBATIM;
-                } else {        /* match fail */
+                } else {                       /* match fail */
                     memcpy(var_buf + var_i, line + i, sub_i + 1);
                     i += sub_i + 1;
                     buf_i += sub_i + 1;
@@ -189,8 +189,8 @@ static void handle_args(int *argc, char ***argv) {
 
 /* In order, check:
  *   ${NAME}
- *   ~/{SKEL_CLOSET:-.dem_bones}/${NAME}
- *   ${SKEL_SYS_PATH:-/usr/local/share/skel/}/${NAME}
+ *   ${SKEL_CLOSET:-~/.dem_bones}/${NAME}
+ *   ${SKEL_SYSTEM_CLOSET:-/usr/local/share/skel}/${NAME}
  * */
 static FILE *open_skel_file(const char *name) {
     static char pathbuf[PATH_MAX];
@@ -207,7 +207,7 @@ static FILE *open_skel_file(const char *name) {
         if (0) printf("trying path '%s'...\n", pathbuf);                \
         f = fopen(pathbuf, "r")
 
-    /* not found => try ${SKEL_CLOSET} or default home path */
+    /* not found => try user's closet */
     if (f == NULL) {
         if (skel_path[0] == '~' && skel_path[1] == '/') {
             TRY_PATH("%s/%s/%s", home, skel_path + 2, name);
@@ -216,7 +216,7 @@ static FILE *open_skel_file(const char *name) {
         }
     }
 
-    /* still not found => try global path */
+    /* still not found => try global closet */
     if (f == NULL) {
         skel_path = getenv("SKEL_SYSTEM_CLOSET");
         if (skel_path == NULL) skel_path = DEF_SYSTEM_PATH;
