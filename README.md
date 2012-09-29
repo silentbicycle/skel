@@ -16,8 +16,7 @@ This is a little standalone C program. It has a very small startup time, and the
 
     $ env FOO="what #{FOO} should expand to" skel TEMPLATE_FILE
     
-If a template file is unspecified (or "-"), it will read the template line-by-line from `stdin`. You can escape expanders with \ , i.e.,
-\#{FOO} will be output as "#{FOO}" rather than getenv("FOO").
+If a template file is unspecified (or "-"), it will read the template line-by-line from `stdin`. You can escape expanders with \ , i.e., \\#{FOO} will be output as "#{FOO}" rather than getenv("FOO").
 
 # Command line options
 
