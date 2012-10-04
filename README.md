@@ -30,7 +30,7 @@ If a template file is unspecified (or "-"), it will read the template line-by-li
 If the `-d` option is used, it looks for a file structured like:
 
     VAR1 the rest of the line goes in the variable
-    # this is a commend
+    # this is a comment
     VAR2 another variable
 
 and uses its definitions as defaults.
