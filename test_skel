@@ -1,6 +1,6 @@
 #!/bin/sh
 
-function check() {
+function check {
     local exp=$1
     shift
     local got=$*

@@ -71,6 +71,8 @@ static void print_env_var(char *varname) {
         if (abort_on_undef) {
             fprintf(stderr, "Undefined variable: '%s'\n", varname);
             exit(2);
+        } else {
+            printf("%s%s%s", sub_open, varname, sub_close);
         }
     } else {
         printf("%s", var);
