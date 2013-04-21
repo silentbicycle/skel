@@ -27,7 +27,7 @@ check "foobar" $(echo "#{FOO}#{BAR}" | env FOO="foo" BAR="bar" ./skel)
 check "#{FOO}" $(echo "\#{FOO}" | env FOO="foo" ./skel)
 
 # check substitution of undef vars
-check "undef_" $(echo "undef_#{UNKNOWN}" | ./skel)
+check "undef_#{UNKNOWN}" $(echo "undef_#{UNKNOWN}" | ./skel)
 
 # check default file usage
 check "foobar" $(echo "#{FOO}#{BAR}" | ./skel -d example_defaults)
