@@ -24,6 +24,8 @@
 #include <limits.h>
 #include <sys/stat.h>
 
+#define SKEL_VERSION "0.1.1"
+
 #define BUF_SZ MAX_INPUT
 
 typedef enum { MODE_VERBATIM, MODE_IN_PATTERN } sub_mode;
@@ -47,18 +49,21 @@ static char *sub_open = DEF_OPEN_PATTERN;
 static char *sub_close = DEF_CLOSE_PATTERN;
 static char *defaults_file = NULL;
 static int abort_on_undef = 0;     /* abort on undefined substitution */
+static int ignore_cwd = 0;         /* ignore templates in current directory */
 
 static void usage() {
     fprintf(stderr,
+        "skel " SKEL_VERSION " by Scott Vokes <vokes.s@gmail.com>\n"
         "usage: \n"
-        "    env FOO=\"definition\" \n"
-        "        BAR=\"other definition\" \n"
-        "        skel [-h] [-o OPENER] [-c CLOSER] [-d FILE] [-p PATH] [-e] [TEMPLATE_FILE]\n"
+        "  env FOO=\"definition\" \\\n"
+        "    BAR=\"other definition\" \\\n"
+        "    skel [-h] [-s] [-o OPENER] [-c CLOSER] [-d FILE] [-p PATH] [-e] [TEMPLATE]\n"
         " -h:        help\n"
         " -o OPENER: set substitution open pattern (default \"" DEF_OPEN_PATTERN "\")\n"
         " -c CLOSER: set substitution close pattern (default \"" DEF_CLOSE_PATTERN "\")\n"
         " -d FILE:   set defaults file (a file w/ a list of \"KEY rest_of_line\" pairs)\n"
         " -p PATH:   path to skeleton files (closet)\n"
+        " -i:        ignore templates in current directory\n"
         " -e:        treat undefined variable as an error\n"
         );
     exit(1);
@@ -161,10 +166,13 @@ static void sub_template() {
 
 static void handle_args(int *argc, char ***argv) {
     int f = 0;
-    while ((f = getopt(*argc, *argv, "ho:c:d:p:e")) != -1) {
+    while ((f = getopt(*argc, *argv, "hio:c:d:p:e")) != -1) {
         switch (f) {
         case 'h':               /* help */
             usage();
+        case 'i':               /* ignore templates in current directory */
+            ignore_cwd = 1;
+            break;
         case 'o':               /* set substitution opener */
             sub_open = optarg;
             break;
@@ -200,7 +208,8 @@ static FILE *open_skel_file(const char *name) {
     FILE *f = NULL;
     if (skel_path == NULL) skel_path = getenv("SKEL_CLOSET");
     if (skel_path == NULL) skel_path = DEF_HOME_PATH;
-    f = fopen(name, "r");
+
+    if (!ignore_cwd) f = fopen(name, "r");
 
     #define TRY_PATH(fmt, ...) \
         if (PATH_MAX <= snprintf(pathbuf, PATH_MAX, fmt, __VA_ARGS__)) {\

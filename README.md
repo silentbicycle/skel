@@ -25,6 +25,7 @@ If a template file is unspecified (or "-"), it will read the template line-by-li
     -c CLOSER: set closer for variable pattern (def. "}")
     -d FILE:   read default values from a file
     -p PATH:   path to your skeletons' closet
+    -i:        ignore templates in current directory
     -e:        abort if variable is undefined (otherwise "")
 
 If the `-d` option is used, it looks for a file structured like:
