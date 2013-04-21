@@ -2,7 +2,11 @@ skel.
 
 # Why another "simple" template program? I mean, come on, man.
 
-This is a little standalone C program. It has a very small startup time, and the process environment makes for a decent key/value map. It's fast, I use it, thought I'd share it.
+This is a little standalone C program. It has a very small startup time,
+and the process environment makes for a decent key/value map. It's fast,
+tiny, and doesn't depend on anything.
+
+I use it, thought I'd share it.
 
 # How do I build it?
 
@@ -16,7 +20,9 @@ This is a little standalone C program. It has a very small startup time, and the
 
     $ env FOO="what #{FOO} should expand to" skel TEMPLATE_FILE
     
-If a template file is unspecified (or "-"), it will read the template line-by-line from `stdin`. You can escape expanders with \ , i.e., \\#{FOO} will be output as "#{FOO}" rather than getenv("FOO").
+If a template file is unspecified (or "-"), it will read the template
+line-by-line from `stdin`. You can escape expanders with \ , i.e.,
+\\#{FOO} will be output as "#{FOO}" rather than getenv("FOO").
 
 # Command line options
 
@@ -25,7 +31,6 @@ If a template file is unspecified (or "-"), it will read the template line-by-li
     -c CLOSER: set closer for variable pattern (def. "}")
     -d FILE:   read default values from a file
     -p PATH:   path to your skeletons' closet
-    -i:        ignore templates in current directory
     -e:        abort if variable is undefined (otherwise "")
 
 If the `-d` option is used, it looks for a file structured like:
@@ -34,9 +39,13 @@ If the `-d` option is used, it looks for a file structured like:
     # this is a comment
     VAR2 another variable
 
-and uses its definitions as defaults.
+and uses its definitions as defaults. If putting everything in one
+file is getting unwieldy, then [denv] may be of interest.
 
-Unless the `-p` option specifies a path, it will check for the template file in the following paths:
+[denv]: https://github.com/silentbicycle/denv
+
+Unless the `-p` option specifies a path, it will check for the template
+file in the following paths, if present:
 
     .
     ${SKEL_CLOSET} (default: ~/.dem_bones)
