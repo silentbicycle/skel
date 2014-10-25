@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2012 Scott Vokes <vokes.s@gmail.com>
+ * Copyright (c) 2012-14 Scott Vokes <vokes.s@gmail.com>
  *  
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,9 +22,10 @@
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
-#include <sys/stat.h>
 
-#define SKEL_VERSION "0.1.1"
+#define SKEL_VERSION_MAJOR 0
+#define SKEL_VERSION_MINOR 1
+#define SKEL_VERSION_PATCH 1
 
 #define BUF_SZ MAX_INPUT
 
@@ -52,7 +53,7 @@ static int abort_on_undef = 0;     /* abort on undefined substitution */
 
 static void usage() {
     fprintf(stderr,
-        "skel " SKEL_VERSION " by Scott Vokes <vokes.s@gmail.com>\n"
+        "skel %u.%u.%u by Scott Vokes <vokes.s@gmail.com>\n"
         "usage: \n"
         "  env FOO=\"definition\" \\\n"
         "    BAR=\"other definition\" \\\n"
@@ -62,8 +63,8 @@ static void usage() {
         " -c CLOSER: set substitution close pattern (default \"" DEF_CLOSE_PATTERN "\")\n"
         " -d FILE:   set defaults file (a file w/ a list of \"KEY rest_of_line\" pairs)\n"
         " -p PATH:   path to skeleton files (closet)\n"
-        " -e:        treat undefined variable as an error\n"
-        );
+        " -e:        treat undefined variable as an error\n",
+        SKEL_VERSION_MAJOR, SKEL_VERSION_MINOR, SKEL_VERSION_PATCH);
     exit(1);
 }
 
@@ -209,7 +210,7 @@ static FILE *open_skel_file(const char *name) {
         if (PATH_MAX <= snprintf(pathbuf, PATH_MAX, fmt, __VA_ARGS__)) {\
             return NULL;                                                \
         }                                                               \
-        if (0) printf("trying path '%s'...\n", pathbuf);                \
+        if (0) { printf("trying path '%s'...\n", pathbuf); }            \
         f = fopen(pathbuf, "r")
 
     /* not found => try user's closet */
@@ -263,7 +264,7 @@ int main(int argc, char **argv) {
         if (NULL == template) { err(1, "skeleton file '%s'", argv[0]); }
     }
 
-    if (defaults_file) read_defaults();
+    if (defaults_file) { read_defaults(); }
     sub_template();
     return 0;
 }
