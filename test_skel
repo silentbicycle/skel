@@ -26,6 +26,9 @@ check "foobar" $(echo "#{FOO}#{BAR}" | env FOO="foo" BAR="bar" ./skel)
 # check escaping
 check "#{FOO}" $(echo "\#{FOO}" | env FOO="foo" ./skel)
 
+# preserve escapes not before substitution markers
+check "foo_\_bar" $(echo "#{FOO}_\_bar" | env FOO="foo" ./skel)
+
 # check substitution of undef vars
 check "undef_#{UNKNOWN}" $(echo "undef_#{UNKNOWN}" | ./skel)
 

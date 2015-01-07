@@ -92,7 +92,7 @@ static void sub_line(const char *line) {
     while ((c = line[i])) {
         if (mode == MODE_VERBATIM) {
             /* This could be factored better... */
-            if (c == escape) {
+            if (c == escape && line[i + 1] == sub_open[0]) {
                 buf[buf_i++] = line[++i];
             } else if (c == sub_open[0]) {     /* check for 'sub_open' match */
                 for (sub_i = 0; sub_open[sub_i] == line[i + sub_i]; sub_i++) {
