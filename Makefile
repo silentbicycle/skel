@@ -8,3 +8,14 @@ test: ${PROJECT}
 
 clean:
 	rm -f ${PROJECT} *.o *.core
+
+# Installation
+PREFIX ?=	/usr/local
+INSTALL ?=	install
+RM ?=		rm
+
+install:
+	${INSTALL} -c ${PROJECT} ${PREFIX}/bin
+
+uninstall:
+	${RM} -f ${PREFIX}/bin/${PROJECT}
