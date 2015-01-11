@@ -32,6 +32,8 @@ line-by-line from `stdin`. You can escape expanders with \ , i.e.,
     -d FILE:   read default values from a file
     -p PATH:   path to your skeletons' closet
     -e:        abort if variable is undefined (otherwise "")
+    -x EXEC:   exec patterns beginning with EXEC char and insert result,
+               such as -x % '#{%date +%Y}' => 2014 . (default: off)
 
 If the `-d` option is used, it looks for a file structured like:
 

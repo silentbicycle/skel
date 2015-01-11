@@ -26,6 +26,7 @@
 #define SKEL_VERSION_MAJOR 0
 #define SKEL_VERSION_MINOR 1
 #define SKEL_VERSION_PATCH 2
+/* 0.1.2 +EXEC_CHAR */
 
 #define BUF_SZ MAX_INPUT
 
@@ -50,6 +51,7 @@ static char *sub_open = DEF_OPEN_PATTERN;
 static char *sub_close = DEF_CLOSE_PATTERN;
 static char *defaults_file = NULL;
 static int abort_on_undef = 0;     /* abort on undefined substitution */
+static char exec_char = '\0';      /* '\0' => off */
 
 static void usage() {
     fprintf(stderr,
@@ -57,10 +59,14 @@ static void usage() {
         "usage: \n"
         "  env FOO=\"definition\" \\\n"
         "    BAR=\"other definition\" \\\n"
-        "    skel [-h] [-o OPENER] [-c CLOSER] [-d FILE] [-p PATH] [-e] [TEMPLATE]\n"
+        "    skel [-h] [-o OPENER] [-c CLOSER] [-d FILE]\n"
+        "         [-p PATH]  [-x EXEC] [-e] [TEMPLATE]\n"
+        "\n"
         " -h:        help\n"
         " -o OPENER: set substitution open pattern (default \"" DEF_OPEN_PATTERN "\")\n"
         " -c CLOSER: set substitution close pattern (default \"" DEF_CLOSE_PATTERN "\")\n"
+        " -x EXEC    exec patterns beginning with EXEC char and insert result,\n"
+        "            such as -x %% '#{%%date +%%Y}' => 2014 . (default: off)\n"
         " -d FILE:   set defaults file (a file w/ a list of \"KEY rest_of_line\" pairs)\n"
         " -p PATH:   path to skeleton files (closet)\n"
         " -e:        treat undefined variable as an error\n",
@@ -80,6 +86,24 @@ static void print_env_var(char *varname) {
         }
     } else {
         printf("%s", var);
+    }
+}
+
+static void execute_pattern(char *cmd) {
+    FILE *child = popen(cmd, "r");
+    if (child == NULL) {
+        fprintf(stderr, "popen failure for command '%s'\n", cmd);
+    } else {
+        char buf[BUF_SZ];
+        for (;;) {
+            char *line = fgets(buf, sizeof(buf), child);
+            if (line) {
+                printf("%s", line);
+            } else {
+                break;
+            }
+        }
+        pclose(child);
     }
 }
 
@@ -128,7 +152,11 @@ static void sub_line(const char *line) {
                 if (sub_close[sub_i] == '\0') { /* matched */
                     i += sub_i - 1;
                     var_buf[var_i] = '\0';
-                    print_env_var(var_buf);
+                    if (var_i > 1 && exec_char == var_buf[0]) {
+                        execute_pattern(&var_buf[1]);
+                    } else {
+                        print_env_var(var_buf);
+                    }
                     var_i = sub_i = 0;
                     mode = MODE_VERBATIM;
                 } else {                       /* match fail */
@@ -165,7 +193,7 @@ static void sub_template() {
 
 static void handle_args(int *argc, char ***argv) {
     int f = 0;
-    while ((f = getopt(*argc, *argv, "ho:c:d:p:e")) != -1) {
+    while ((f = getopt(*argc, *argv, "ho:c:d:p:ex:")) != -1) {
         switch (f) {
         case 'h':               /* help */
             usage();
@@ -183,6 +211,9 @@ static void handle_args(int *argc, char ***argv) {
             break;
         case 'e':               /* error on NULL substitution */
             abort_on_undef = 1;
+            break;
+        case 'x':               /* execute patterns */
+            exec_char = optarg[0];
             break;
         case '?':
         default:
