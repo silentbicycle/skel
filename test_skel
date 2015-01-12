@@ -36,7 +36,7 @@ check "undef_#{UNKNOWN}" $(echo "undef_#{UNKNOWN}" | ./skel)
 check "foobar" $(echo "#{FOO}#{BAR}" | ./skel -d example_defaults)
 
 # check command expansion
-check `date +%Y` $(echo "#{%date +%Y}" | ./skel -x %)
+check `date +%Y` $(echo "#{%% date +%Y}" | ./skel -x %)
 
 # check substitution of undef vars
 echo "undef_#{UNKNOWN}" | ./skel -e >/dev/null 2>/dev/null && echo "should fail"

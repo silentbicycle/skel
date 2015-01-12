@@ -65,8 +65,9 @@ static void usage() {
         " -h:        help\n"
         " -o OPENER: set substitution open pattern (default \"" DEF_OPEN_PATTERN "\")\n"
         " -c CLOSER: set substitution close pattern (default \"" DEF_CLOSE_PATTERN "\")\n"
-        " -x EXEC    exec patterns beginning with EXEC char and insert result,\n"
-        "            such as -x %% '#{%%date +%%Y}' => 2014 . (default: off)\n"
+        " -x EXEC    exec patterns starting with EXEC char and insert result.\n"
+        "            If doubled, trailing newlines will be stripped.\n"
+        "            Example: -x %% '#{%%%%date +%%Y}' => '2015'.\n"
         " -d FILE:   set defaults file (a file w/ a list of \"KEY rest_of_line\" pairs)\n"
         " -p PATH:   path to skeleton files (closet)\n"
         " -e:        treat undefined variable as an error\n",
@@ -90,6 +91,13 @@ static void print_env_var(char *varname) {
 }
 
 static void execute_pattern(char *cmd) {
+    bool strip_nl = false;
+    if (cmd[0] == exec_char) {
+        strip_nl = true;
+        cmd++;
+    }
+    while (cmd[0] == ' ') { cmd++; }  /* eat leading whitespace */
+
     FILE *child = popen(cmd, "r");
     if (child == NULL) {
         fprintf(stderr, "popen failure for command '%s'\n", cmd);
@@ -98,6 +106,10 @@ static void execute_pattern(char *cmd) {
         for (;;) {
             char *line = fgets(buf, sizeof(buf), child);
             if (line) {
+                int len = strlen(line);
+                if (strip_nl && len > 0 && line[len - 1] == '\n') {
+                    line[len - 1] = '\0';
+                }
                 printf("%s", line);
             } else {
                 break;
