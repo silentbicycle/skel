@@ -125,4 +125,4 @@ i18n/locale handling is not supported yet.
 
 ## SEE ALSO
 
-cat(1), env(1), sh(1)
+cat(1), env(1), environ(7), sh(1)

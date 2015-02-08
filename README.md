@@ -1,5 +1,15 @@
 # skel
 
+skel reads a template from stdin or a file given on the command line,
+replacing expansion patterns with the contents of variables from the
+environment.
+
+For example, 
+
+    $ skel TEMPLATE_FILE
+
+will cat TEMPLATE_FILE, replacing instances of `#{HOME}` with the
+contents of `#{HOME}` in the environment.
 
 
 # Why another "simple" template program? I mean, come on, man.
