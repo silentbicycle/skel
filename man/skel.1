@@ -1,0 +1,137 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "SKEL" "1" "February 2015" "" ""
+.
+.SH "SYNOPSIS"
+skel [\-h] [\-o OPENER] [\-c CLOSER] [\-d FILE] [\-p PATH] [\-e] [\-x] [TEMPLATE]
+.
+.SH "DESCRIPTION"
+skel reads a template from stdin or a file given on the command line, replacing expansion patterns with the contents of variables from the environment\.
+.
+.P
+For example,
+.
+.IP "" 4
+.
+.nf
+
+$ skel TEMPLATE_FILE
+.
+.fi
+.
+.IP "" 0
+.
+.P
+will cat TEMPLATE_FILE, replacing instances of \fB#{HOME}\fR with the contents of \fB#{HOME}\fR in the environment\.
+.
+.SH "OPTIONS"
+.
+.TP
+\fB\-h\fR
+Print a usage summary and exit\.
+.
+.TP
+\fB\-o OPENER\fR
+Replace string used to mark the start of expansion patterns\. The opener defaults to \'#{\', and cannot contain \':\'\.
+.
+.TP
+\fB\-c CLOSER\fR
+Replace string used to mark the end of expansion patterns\. The closer defaults to \'}\', and cannot contain \':\'\.
+.
+.TP
+\fB\-d\fR
+A file which should be used as defaults\. See DEFAULT FILE below\.
+.
+.TP
+\fB\-p\fR
+Path to the skeletons\' closet\.
+.
+.TP
+\fB\-e\fR
+Exit with an error if variables are undefined; otherwise, undefined variables are output as \'#{VARNAME}\'\.
+.
+.TP
+\fB\-x\fR
+Enable execution patterns\. See ATTRIBUTES below\.
+.
+.SH "EXIT STATUS"
+Returns 0 when the template has been output\. Returns 1 if \fB\-e\fR was used and a variable was undefined\. Returns 2 if \fB\-x\fR was used and a command failed to execute\.
+.
+.SH "ENVIRONMENT"
+Since variables are expanded from the shell environment, it\'s easy to pass substitutions to skel using env(1):
+.
+.IP "" 4
+.
+.nf
+
+$ env FOO="foo" skel TEMPLATE_FILE
+.
+.fi
+.
+.IP "" 0
+.
+.SH "FILES"
+Unless the \fB\-p\fR option specifies a path, skel will check for the template file in the following paths, if present:
+.
+.IP "" 4
+.
+.nf
+
+\&\.
+${SKEL_CLOSET} (default: ~/\.dem_bones)
+${SKEL_SYSTEM_CLOSET} (default: /usr/local/share/skel/)
+.
+.fi
+.
+.IP "" 0
+.
+.SH "NOTES"
+Expansion patterns are of the form \fB#{:ATTRIBUTES:VARNAME:DEFAULT}\fR, where the \fB:ATTRIBUTES:\fR and \fB:DEFAULT\fR sections can be omitted\. The expansion will be replaced with the value of \fBVARNAME\fR in the shell environment, as modified by the attributes\. If the variable is undefined, then the default will be used (if given), otherwise the expansion will be printed as "#{VARNAME}"\.
+.
+.P
+Variable names are limited to alphanumeric characters and \fB_\fR\. The expansion opener and closer strings can be changed with \fB\-o\fR and \fB\-c\fR (they default to \fB#{\fR and \fB}\fR), but cannot contain \fB:\fR\.
+.
+.SS "ATTRIBUTES"
+.
+.nf
+
+l: convert to lowercase
+u: convert to uppercase
+n: eliminate trailing newline
+x: Pass expansion body to shell and insert output
+.
+.fi
+.
+.P
+The \'x\' attribute requires \fBskel \-x\fR to avoid accidentally running dangerous commands, and cannot be defaulted\.
+.
+.P
+For example, \fB#{:xn:date +%Y}\fR will expand to the current year (without a trailing newline), and \fB#{:l:PROJNAME}\fR & \fB#{:u:PROJNAME}\fR would expand to the lowercase and uppercase versions of \fB${PROJNAME}\fR\.
+.
+.SS "DEFAULT FILE"
+If the \fB\-d\fR option is used, skel will attempt to read a file structured like:
+.
+.IP "" 4
+.
+.nf
+
+VAR1 the rest of the line goes in the variable
+# this is a comment
+VAR2 another variable
+.
+.fi
+.
+.IP "" 0
+.
+.P
+and uses its definitions as defaults\.
+.
+.SH "BUGS"
+i18n/locale handling is not supported yet\.
+.
+.SH "COPYRIGHT"
+\fBskel\fR is Copyright (C) 2012\-15 Scott Vokes \fIvokes\.s@gmail\.com\fR\.
+.
+.SH "SEE ALSO"
+cat(1), env(1), environ(7), sh(1)
