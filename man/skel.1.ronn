@@ -1,0 +1,128 @@
+skel: command-line templating
+=============================
+
+## SYNOPSIS
+
+skel [-h] [-o OPENER] [-c CLOSER] [-d FILE] [-p PATH] [-e] [-x] [TEMPLATE]
+
+
+## DESCRIPTION
+
+skel reads a template from stdin or a file given on the command line,
+replacing expansion patterns with the contents of variables from the
+environment.
+
+For example, 
+
+    $ skel TEMPLATE_FILE
+
+will cat TEMPLATE_FILE, replacing instances of `#{HOME}` with the
+contents of `#{HOME}` in the environment.
+
+
+## OPTIONS
+
+  * `-h`:
+    Print a usage summary and exit.
+
+  * `-o OPENER`:
+    Replace string used to mark the start of expansion patterns. The
+    opener defaults to '#{', and cannot contain ':'.
+
+  * `-c CLOSER`:
+    Replace string used to mark the end of expansion patterns. The
+    closer defaults to '}', and cannot contain ':'.
+
+  * `-d`:
+    A file which should be used as defaults. See DEFAULT FILE below.
+
+  * `-p`:
+    Path to the skeletons' closet.
+
+  * `-e`:
+    Exit with an error if variables are undefined; otherwise, undefined
+    variables are output as '#{VARNAME}'.
+
+  * `-x`:
+    Enable execution patterns. See ATTRIBUTES below.
+
+
+## EXIT STATUS
+
+Returns 0 when the template has been output.
+Returns 1 if `-e` was used and a variable was undefined.
+Returns 2 if `-x` was used and a command failed to execute.
+
+
+## ENVIRONMENT
+
+Since variables are expanded from the shell environment, it's easy to
+pass substitutions to skel using env(1):
+
+    $ env FOO="foo" skel TEMPLATE_FILE
+
+
+## FILES
+
+Unless the `-p` option specifies a path, skel will check for the template
+file in the following paths, if present:
+
+    .
+    ${SKEL_CLOSET} (default: ~/.dem_bones)
+    ${SKEL_SYSTEM_CLOSET} (default: /usr/local/share/skel/)
+
+
+## NOTES
+
+Expansion patterns are of the form `#{:ATTRIBUTES:VARNAME:DEFAULT}`,
+where the `:ATTRIBUTES:` and `:DEFAULT` sections can be omitted. The
+expansion will be replaced with the value of `VARNAME` in the shell
+environment, as modified by the attributes. If the variable is
+undefined, then the default will be used (if given), otherwise the
+expansion will be printed as "#{VARNAME}".
+
+Variable names are limited to alphanumeric characters and `_`. The
+expansion opener and closer strings can be changed with `-o` and `-c`
+(they default to `#{` and `}`), but cannot contain `:`.
+
+
+### ATTRIBUTES
+
+    l: convert to lowercase
+    u: convert to uppercase
+    n: eliminate trailing newline
+    x: Pass expansion body to shell and insert output
+
+The 'x' attribute requires `skel -x` to avoid accidentally running
+dangerous commands, and cannot be defaulted.
+
+For example, `#{:xn:date +%Y}` will expand to the current year (without
+a trailing newline), and `#{:l:PROJNAME}` & `#{:u:PROJNAME}` would
+expand to the lowercase and uppercase versions of `${PROJNAME}`.
+
+
+### DEFAULT FILE
+
+If the `-d` option is used, skel will attempt to read a file structured
+like:
+
+    VAR1 the rest of the line goes in the variable
+    # this is a comment
+    VAR2 another variable
+
+and uses its definitions as defaults.
+
+
+## BUGS
+
+i18n/locale handling is not supported yet.
+
+
+## COPYRIGHT
+
+`skel` is Copyright (C) 2012-15 Scott Vokes <vokes.s@gmail.com>.
+
+
+## SEE ALSO
+
+cat(1), env(1), sh(1)

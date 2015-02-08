@@ -1,14 +1,25 @@
 #!/bin/sh
 
+count=0
+
+if [ "$1" == "-v" ]; then
+    VERBOSE=true
+fi
+
 function check {
     local exp=$1
     shift
     local got=$*
     if [ "${exp}" != "${got}" ]; then
-        echo "expected '${exp}', got '${got}'"
+        echo "${count}: expected '${exp}', got '${got}'"
     else
-        printf "."
+        if [ "${VERBOSE}" == "true" ]; then
+            echo "${count}: expected '${exp}', got '${got}'"
+        else
+            printf "."
+        fi
     fi
+    count=$((count+1))
 }
 
 # base case
@@ -24,7 +35,7 @@ check "foo" $(echo "#{{FOO}}" | env FOO="foo" ./skel -o "#{{" -c "}}")
 check "foobar" $(echo "#{FOO}#{BAR}" | env FOO="foo" BAR="bar" ./skel)
 
 # check escaping
-check "#{FOO}" $(echo "\#{FOO}" | env FOO="foo" ./skel)
+check '#{FOO} \\foo #{FOO}' $(echo '\#{FOO} \\\\foo \#{FOO}' | env FOO="foo" ./skel)
 
 # preserve escapes not before substitution markers
 check "foo_\_bar" $(echo "#{FOO}_\_bar" | env FOO="foo" ./skel)
@@ -32,12 +43,35 @@ check "foo_\_bar" $(echo "#{FOO}_\_bar" | env FOO="foo" ./skel)
 # check substitution of undef vars
 check "undef_#{UNKNOWN}" $(echo "undef_#{UNKNOWN}" | ./skel)
 
+# check substitution of undef vars with attributes
+check "undef_#{UNKNOWN}" $(echo "undef_#{:n:UNKNOWN}" | ./skel)
+
 # check default file usage
 check "foobar" $(echo "#{FOO}#{BAR}" | ./skel -d example_defaults)
 
-# check command expansion
-check `date +%Y` $(echo "#{%% date +%Y}" | ./skel -x %)
+# commands should not run unless execution is enabled
+check "nothing" $(echo "nothing#{:xn:date +%Y}" | ./skel 2>/dev/null)
+
+# check command expansion (and delete trailing '\n')
+check `date +%Y` $(echo "#{:xn:date +%Y}" | ./skel -x)
 
 # check substitution of undef vars
 echo "undef_#{UNKNOWN}" | ./skel -e >/dev/null 2>/dev/null && echo "should fail"
+
+# check substitution of default
+check "undef_blah" $(echo "undef_#{UNKNOWN:blah}" | ./skel)
+
+# check substitution of default w/ multi-char open/close
+check "undef_blah" $(echo "undef_#{^%UNKNOWN:blah}^%" | ./skel -o "#{^%" -c "}^%")
+
+# check uppercase attribute
+check "UPPER" $(echo "#{:u:upper}" | env upper=upper ./skel)
+
+# check lowercase attribute
+check "lower" $(echo "#{:l:LOWER}" | env LOWER=LOWER ./skel)
+
+# check alt expansion opener/closer
+check "foobar" $(echo "%^FOO%^%^BAR%^" | env FOO="foo" BAR="bar" ./skel -o "%^" -c "%^")
+check "foobar" $(echo "%%FOO%%%%BAR%%" | env FOO="foo" BAR="bar" ./skel -o "%%" -c "%%")
+
 echo tests complete

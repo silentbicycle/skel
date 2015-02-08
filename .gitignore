@@ -1,2 +1,4 @@
 skel
-skel.dSYM
+*.dSYM
+*.o
+README.html

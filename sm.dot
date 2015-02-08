@@ -1,0 +1,20 @@
+digraph {
+        start -> verbatim;
+        verbatim -> verbatim [label="accum ."]
+        verbatim -> escape [label="'\\'"]
+        escape -> verbatim [label="accum '#'"]
+        escape -> verbatim [label="accum '\\'\nand escaped"]
+        verbatim -> attr_check [label="got '#{',\nprint accum"]
+        attr_check -> attributes [label="':'"]
+        attr_check -> var [label="."]
+        attributes -> var [label="':'"]
+        attributes -> attributes [label="attr char"]
+        var -> var [label="[a-zA-Z0-9_]"]
+        var -> default [label="':'"]
+        default -> default [label="accum ."]
+        default -> expand [label="'}'"]
+        var -> expand [label="'}'"]
+        expand -> verbatim [label="[print]"]
+        verbatim -> done [label="EOS"]
+        done [peripheries=2]
+}

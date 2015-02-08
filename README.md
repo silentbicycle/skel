@@ -1,4 +1,6 @@
-skel.
+# skel
+
+
 
 # Why another "simple" template program? I mean, come on, man.
 
@@ -8,13 +10,20 @@ tiny, and doesn't depend on anything.
 
 I use it, thought I'd share it.
 
+
 # How do I build it?
 
     $ make skel
+
+To install it,
+
+    $ make install
     
+
 # How do I run the tests?
 
     $ make test
+
 
 # So, how do I use it, then?
 
@@ -24,17 +33,46 @@ If a template file is unspecified (or "-"), it will read the template
 line-by-line from `stdin`. You can escape expanders with \ , i.e.,
 \\#{FOO} will be output as "#{FOO}" rather than getenv("FOO").
 
+
+# Expansions
+
+An expansion is a pattern of the form `#{:ATTR:VARNAME:DEFAULT}` that
+appears in the template stream. The attributes and default are optional
+(so just `#{HOME}` works). The expansion will be replaced with the value
+of `VARNAME` in the shell environment, as modified by the attributes. If
+the variable is undefined, then the default will be used (if given),
+otherwise the expansion will be printed as "#{VARNAME}".
+
+Variable names are limited to alphanumeric characters and `_`. The
+expansion opener and closer strings can be changed with `-o` and `-c`
+(they default to `#{` and `}`), but cannot contain `:`.
+
+## Attributes
+
+    l: convert to lowercase
+    u: convert to uppercase
+    n: eliminate trailing newline
+    x: Pass expansion body to shell and insert output
+
+The 'x' attribute requires `skel -x` to avoid accidentally running
+dangerous commands, and cannot be defaulted.
+
+For example, `#{:xn:date +%Y}` will expand to the current year (without
+a trailing newline), and `#{:l:PROJNAME}` & `#{:u:PROJNAME}` would
+expand to the lowercase and uppercase versions of `${PROJNAME}`.
+
+
 # Command line options
 
     -h:        print help
-    -o OPENER: set opener for variable pattern (def. "#{")
-    -c CLOSER: set closer for variable pattern (def. "}")
+    -o OPENER: set opener for expansion (def. "#{")
+    -c CLOSER: set closer for expansion (def. "}")
     -d FILE:   read default values from a file
     -p PATH:   path to your skeletons' closet
-    -e:        abort if variable is undefined (otherwise "")
-    -x EXEC:   exec patterns beginning with EXEC char and insert result.
-               If doubled, trailing newlines will be stripped.
-               Example: -x % '#{%% date +%Y}' => '2015'.
+    -e:        abort if variable is undefined (otherwise "#{VARNAME}")
+    -x:        exec expansions with 'x' attribute and insert result.
+               Example: `echo '#{:xn:date +%Y}' | skel -x` => "2015".
+               (Off by default to avoid unexpected commands.)
 
 If the `-d` option is used, it looks for a file structured like:
 
