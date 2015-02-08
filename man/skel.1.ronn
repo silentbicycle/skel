@@ -110,7 +110,7 @@ like:
     # this is a comment
     VAR2 another variable
 
-and uses its definitions as defaults.
+and add its definitions to the environment.
 
 
 ## BUGS

@@ -90,7 +90,7 @@ If the `-d` option is used, it looks for a file structured like:
     # this is a comment
     VAR2 another variable
 
-and uses its definitions as defaults. If putting everything in one
+and add its definitions to the environment. If putting everything in one
 file is getting unwieldy, then [denv] may be of interest.
 
 [denv]: https://github.com/silentbicycle/denv

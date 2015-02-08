@@ -34,9 +34,12 @@ man/${PROJECT}.1.html: man/${PROJECT}.1.ronn
 PREFIX ?=	/usr/local
 INSTALL ?=	install
 RM ?=		rm
+MAN_DEST ?=	${PREFIX}/share/man
 
 install:
 	${INSTALL} -c ${PROJECT} ${PREFIX}/bin
+	${INSTALL} -c man/${PROJECT}.1 ${MAN_DEST}/man1/
 
 uninstall:
 	${RM} -f ${PREFIX}/bin/${PROJECT}
+	${RM} -f ${MAN_DEST}/man1/${PROJECT}.1
