@@ -15,6 +15,8 @@ test: ${PROJECT}
 clean:
 	rm -f ${PROJECT} *.o *.core
 
+ci: test
+
 *.o: *.h Makefile
 
 sm.png: sm.dot
