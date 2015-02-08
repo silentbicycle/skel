@@ -1,5 +1,6 @@
-PROJECT = skel
-CFLAGS += -std=c99 -Wall -pedantic -g -Os
+PROJECT= 	skel
+CSTD=		-std=c99 -D_POSIX_C_SOURCE=200112L
+CFLAGS += 	${CSTD} -Wall -pedantic -g -Os
 
 OBJS=	main.o \
 	path.o \

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 count=0
 
@@ -35,7 +35,7 @@ check "foo" $(echo "#{{FOO}}" | env FOO="foo" ./skel -o "#{{" -c "}}")
 check "foobar" $(echo "#{FOO}#{BAR}" | env FOO="foo" BAR="bar" ./skel)
 
 # check escaping
-check '#{FOO} \\foo #{FOO}' $(echo '\#{FOO} \\\\foo \#{FOO}' | env FOO="foo" ./skel)
+check '#{FOO} \\foo #{FOO}' $(echo '\#{FOO} \\foo \#{FOO}' | env FOO="foo" ./skel)
 
 # preserve escapes not before substitution markers
 check "foo_\_bar" $(echo "#{FOO}_\_bar" | env FOO="foo" ./skel)

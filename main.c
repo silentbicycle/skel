@@ -23,17 +23,17 @@ static void substitute_template(config *cfg);
 static void handle_args(config *cfg, int *argc, char ***argv);
 static void read_defaults(config *cfg);
 
+/* 0.2.0 */
 #define SKEL_VERSION_MAJOR 0
-#define SKEL_VERSION_MINOR 1
-#define SKEL_VERSION_PATCH 2
-/* 0.1.2 +EXEC_CHAR, +ATTRIBUTES, +DEFAULTS => 0.2.0 */
+#define SKEL_VERSION_MINOR 2
+#define SKEL_VERSION_PATCH 0
 
 static void usage(void) {
     fprintf(stderr,
         "skel %u.%u.%u by Scott Vokes <vokes.s@gmail.com>\n"
         "usage: \n"
         "  env FOO=\"definition\" \\\n"
-        "    BAR=\"other definition\" \\\n"
+        "      BAR=\"other definition\" \\\n"
         "    skel [-h] [-o OPENER] [-c CLOSER] [-d FILE]\n"
         "         [-p PATH] [-x] [-e] [TEMPLATE]\n"
         "\n"
