@@ -43,6 +43,9 @@ check "foo_\_bar" $(echo "#{FOO}_\_bar" | env FOO="foo" ./skel)
 # check substitution of undef vars
 check "undef_#{UNKNOWN}" $(echo "undef_#{UNKNOWN}" | ./skel)
 
+# check substitution of undef vars w/ empty attribute list
+check "undef_#{UNKNOWN}" $(echo "undef_#{::UNKNOWN}" | ./skel)
+
 # check substitution of undef vars with attributes
 check "undef_#{UNKNOWN}" $(echo "undef_#{:n:UNKNOWN}" | ./skel)
 

@@ -26,7 +26,7 @@ static void read_defaults(config *cfg);
 #define SKEL_VERSION_MAJOR 0
 #define SKEL_VERSION_MINOR 1
 #define SKEL_VERSION_PATCH 2
-/* 0.1.2 +EXEC_CHAR => 0.2.0 */
+/* 0.1.2 +EXEC_CHAR, +ATTRIBUTES, +DEFAULTS => 0.2.0 */
 
 static void usage(void) {
     fprintf(stderr,
@@ -35,14 +35,14 @@ static void usage(void) {
         "  env FOO=\"definition\" \\\n"
         "    BAR=\"other definition\" \\\n"
         "    skel [-h] [-o OPENER] [-c CLOSER] [-d FILE]\n"
-        "         [-p PATH]  [-x EXEC] [-e] [TEMPLATE]\n"
+        "         [-p PATH] [-x] [-e] [TEMPLATE]\n"
         "\n"
         " -h:        help\n"
         " -o OPENER: set substitution open pattern (default \"" DEF_OPEN_PATTERN "\")\n"
         " -c CLOSER: set substitution close pattern (default \"" DEF_CLOSE_PATTERN "\")\n"
-        " -x EXEC    exec patterns starting with EXEC char and insert result.\n"
-        "            If doubled, trailing newlines will be stripped.\n"
-        "            Example: -x %% '#{%%%%date +%%Y}' => '2015'.\n"
+        " -x:        exec expansions with 'x' attribute and insert result.\n"
+        "            Example: `echo '#{:xn:date +%%Y}' | skel -x` => \"2015\".\n"
+        "            (Off by default to avoid unexpected commands.)\n"
         " -d FILE:   set defaults file (a file w/ a list of \"KEY rest_of_line\" pairs)\n"
         " -p PATH:   path to skeleton files (closet)\n"
         " -e:        treat undefined variable as an error\n",

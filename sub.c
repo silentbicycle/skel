@@ -13,13 +13,13 @@ typedef enum {
 } attribute;
 
 typedef enum {
-    MODE_VERBATIM,
-    MODE_ESCAPE,
-    MODE_ATTR_CHECK,
-    MODE_ATTRIBUTES,
-    MODE_VAR,
-    MODE_DEFAULT,
-    MODE_EXPAND,
+    MODE_VERBATIM,              /* pass normal input through */
+    MODE_ESCAPE,                /* may be escaping opener */
+    MODE_ATTR_CHECK,            /* check for expansion attributes */
+    MODE_ATTRIBUTES,            /* save attributes */
+    MODE_VAR,                   /* read variable name / command */
+    MODE_DEFAULT,               /* read default, if any */
+    MODE_EXPAND,                /* expand variable / command */
 } sub_mode;
 
 typedef uint32_t attr_t;
@@ -27,15 +27,16 @@ typedef uint32_t attr_t;
 static void print_env_var(config *cfg, char *varname,
     attr_t attrs, char *default_buf);
 static void execute_pattern(config *cfg, char *cmd, attr_t attrs);
+static bool process_attribute_char(char c, attr_t *attr);
 static void apply_attributes(char *buf, attr_t attrs);
 
 void sub_line(config *cfg, const char *line) {
     char buf[BUF_SZ];
     char var_buf[BUF_SZ];
-    size_t i = 0;
-    size_t sub_i = 0;
-    size_t buf_i = 0;
-    size_t var_i = 0;
+    size_t input_i = 0;
+    size_t buf_i = 0;           /* buffer offset */
+    size_t sub_i = 0;           /* substitution marker offset */
+    size_t var_i = 0;           /* variable name offset */
     sub_mode mode = MODE_VERBATIM;
     char c = '\0';
     attr_t attrs = 0;
@@ -45,15 +46,15 @@ void sub_line(config *cfg, const char *line) {
     
     const char *sub_open = cfg->sub_open;
     const char *sub_close = cfg->sub_close;
-    int sub_open_len = strlen(sub_open);
-    int sub_close_len = strlen(sub_close);
+    const int sub_open_len = strlen(sub_open);
+    const int sub_close_len = strlen(sub_close);
 
-    c = line[i];
+    c = line[input_i];
 
     while (c) {
         if (0) {
             fprintf(stderr, "%zd: mode %d, got '%c', buf_i %zd, sub_i %zd, var_i %zd\n",
-                i, mode, c, buf_i, sub_i, var_i);
+                input_i, mode, c, buf_i, sub_i, var_i);
         }
 
         switch (mode) {
@@ -63,6 +64,7 @@ void sub_line(config *cfg, const char *line) {
                 if (sub_i == sub_open_len) {
                     mode = MODE_ATTR_CHECK;
                     sub_i = 0;
+                    /* Truncate opener & flush buffer */
                     buf[buf_i - sub_open_len + 1] = '\0';
                     printf("%s", buf);
                     buf_i = 0;
@@ -81,7 +83,7 @@ void sub_line(config *cfg, const char *line) {
             break;
 
         case MODE_ESCAPE:
-            if (c != sub_open[sub_i]) {
+            if (c != sub_open[sub_i]) { /* only escape opener */
                 buf[buf_i] = '\\';
                 buf_i++;
             }
@@ -103,28 +105,12 @@ void sub_line(config *cfg, const char *line) {
             break;
 
         case MODE_ATTRIBUTES:
-            switch (c) {
-            case 'l':
-                attrs = (attrs & ~ATTR_CASE_MASK) | ATTR_LOWERCASE;
-                break;
-            case 'u':
-                attrs = (attrs & ~ATTR_CASE_MASK) | ATTR_UPPERCASE;
-                break;
-            case 'n':
-                attrs |= ATTR_NO_NEWLINE;
-                break;
-            case 'x':
-                attrs |= ATTR_EXECUTE;
-                break;
-            default:
-                fprintf(stderr, "Bad attribute: '%c'\n", c);
-                break;
-            case ':':
+            if (!process_attribute_char(c, &attrs)) {
                 var_i = 0;
                 mode = MODE_VAR;
-                break;
             }
             break;
+
         case MODE_VAR:
             if (c == ':' && !(attrs & ATTR_EXECUTE)) {
                 buf_i = 0;
@@ -175,13 +161,13 @@ void sub_line(config *cfg, const char *line) {
             var_i = 0;
             buf_i = 0;
             sub_i = 0;
-            i--;
+            input_i--;                /* re-process this char */
             mode = MODE_VERBATIM;
             break;
         }
 
-        i++;
-        c = line[i];
+        input_i++;
+        c = line[input_i];
     }
 
     switch (mode) {
@@ -190,9 +176,8 @@ void sub_line(config *cfg, const char *line) {
         buf_i++;
         /* fall through */
     case MODE_VERBATIM:
-        /* flush output buffer */
         buf[buf_i] = '\0';
-        printf("%s", buf);
+        printf("%s", buf);  /* flush output buffer */
         break;
     default:
         fprintf(stderr, "Warning: End of stream in expansion.\n");
@@ -264,6 +249,29 @@ static void execute_pattern(config *cfg, char *cmd, attr_t attrs) {
         }
         pclose(child);
     }
+}
+
+static bool process_attribute_char(char c, attr_t *attrs) {
+    switch (c) {
+    case 'l':
+        *attrs = (*attrs & ~ATTR_CASE_MASK) | ATTR_LOWERCASE;
+        break;
+    case 'u':
+        *attrs = (*attrs & ~ATTR_CASE_MASK) | ATTR_UPPERCASE;
+        break;
+    case 'n':
+        *attrs |= ATTR_NO_NEWLINE;
+        break;
+    case 'x':
+        *attrs |= ATTR_EXECUTE;
+        break;
+    default:
+        fprintf(stderr, "Bad attribute: '%c'\n", c);
+        break;
+    case ':':
+        return false;
+    }
+    return true;
 }
 
 static void apply_attributes(char *buf, attr_t attrs) {
