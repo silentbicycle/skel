@@ -35,7 +35,7 @@ static void usage(void) {
         "  env FOO=\"definition\" \\\n"
         "      BAR=\"other definition\" \\\n"
         "    skel [-h] [-o OPENER] [-c CLOSER] [-d FILE]\n"
-        "         [-p PATH] [-x] [-e] [TEMPLATE]\n"
+        "         [-p PATH] [-x] [-e] [TEMPLATE] [OUT]\n"
         "\n"
         " -h:        help\n"
         " -o OPENER: set substitution open pattern (default \"" DEF_OPEN_PATTERN "\")\n"
@@ -98,6 +98,15 @@ int main(int argc, char **argv) {
     char *skel_path = (argc > 0 ? argv[0] : "-");
     cfg.template = path_open_skel_file(&cfg, skel_path);
     if (NULL == cfg.template) { err(1, "skeleton file '%s'", argv[0]); }
+
+    if (argc > 1) {
+        cfg.out = fopen(argv[1], "w");
+        if (cfg.out == NULL) {
+            err(1, "fopen: %s", argv[1]);
+        }
+    } else {
+        cfg.out = stdout;
+    }
 
     if (cfg.defaults_file) { read_defaults(&cfg); }
     substitute_template(&cfg);

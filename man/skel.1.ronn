@@ -3,7 +3,7 @@ skel: command-line templating
 
 ## SYNOPSIS
 
-skel [-h] [-o OPENER] [-c CLOSER] [-d FILE] [-p PATH] [-e] [-x] [TEMPLATE]
+skel [-h] [-o OPENER] [-c CLOSER] [-d FILE] [-p PATH] [-e] [-x] [TEMPLATE] [OUT]
 
 
 ## DESCRIPTION
@@ -94,7 +94,7 @@ expansion opener and closer strings can be changed with `-o` and `-c`
     x: Pass expansion body to shell and insert output
 
 The 'x' attribute requires `skel -x` to avoid accidentally running
-dangerous commands, and cannot be defaulted.
+dangerous commands; it's disabled by default.
 
 For example, `#{:xn:date +%Y}` will expand to the current year (without
 a trailing newline), and `#{:l:PROJNAME}` & `#{:u:PROJNAME}` would
@@ -110,17 +110,19 @@ like:
     # this is a comment
     VAR2 another variable
 
-and add its definitions to the environment.
+and add its definitions to the environment before evaluating the template.
 
 
 ## BUGS
 
 i18n/locale handling is not supported yet.
 
+Variable names are limited to 256 bytes long.
+
 
 ## COPYRIGHT
 
-`skel` is Copyright (C) 2012-15 Scott Vokes <vokes.s@gmail.com>.
+`skel` is Copyright (C) 2012-18 Scott Vokes <vokes.s@gmail.com>.
 
 
 ## SEE ALSO

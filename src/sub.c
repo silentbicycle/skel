@@ -31,18 +31,18 @@ struct buffer {
     size_t ceil;
 };
 
-static void print_env_var(struct config *cfg, char *varname,
+static void print_env_var(const struct config *cfg, char *varname,
     enum attribute attrs, char *default_buf);
-static void execute_pattern(char *cmd, enum attribute attrs);
+static void execute_pattern(FILE *f, char *cmd, enum attribute attrs);
 static bool process_attribute_char(char c, enum attribute *attr);
 static void apply_attributes(char *buf, enum attribute attrs);
 
 static void append(struct buffer *b, char c);
-static void flush(struct buffer *b);
+static void flush(FILE *f, struct buffer *b);
 static void discard(struct buffer *b, size_t len);
 static void clear(struct buffer *b);
 
-void sub_and_print_line(struct config *cfg, const char *line) {
+void sub_and_print_line(const struct config *cfg, const char *line) {
     char var_buf[VAR_BUF_SZ];
     size_t input_i = 0;
     size_t sub_i = 0;           /* substitution marker offset */
@@ -75,7 +75,7 @@ void sub_and_print_line(struct config *cfg, const char *line) {
                     mode = MODE_ATTR_CHECK;
                     sub_i = 0;
                     discard(&buf, sub_open_len - 1);
-                    flush(&buf);
+                    flush(cfg->out, &buf);
                 } else {
                     append(&buf, c);
                 }
@@ -155,7 +155,7 @@ void sub_and_print_line(struct config *cfg, const char *line) {
             var_buf[var_i] = '\0';
             if (attrs & ATTR_EXECUTE) {
                 if (cfg->exec_patterns) {
-                    execute_pattern(var_buf, attrs);
+                    execute_pattern(cfg->out, var_buf, attrs);
                 } else {
                     fprintf(stderr, "Execute attribute not enabled, check and run with -x flag.\n");
                 }
@@ -181,7 +181,7 @@ void sub_and_print_line(struct config *cfg, const char *line) {
         append(&buf, '\\');
         /* fall through */
     case MODE_VERBATIM:
-        flush(&buf);
+        flush(cfg->out, &buf);
         break;
     default:
         fprintf(stderr, "Warning: End of stream in expansion.\n");
@@ -203,9 +203,9 @@ static void append(struct buffer *b, char c) {
     b->i++;
 }
 
-static void flush(struct buffer *b) {
+static void flush(FILE *f, struct buffer *b) {
     append(b, '\0');
-    printf("%s", b->buf);
+    fprintf(f, "%s", b->buf);
     clear(b);
 }
 
@@ -217,7 +217,7 @@ static void clear(struct buffer *b) {
     b->i = 0;
 }
 
-static void print_env_var(struct config *cfg, char *varname,
+static void print_env_var(const struct config *cfg, char *varname,
         enum attribute attrs, char *default_buf) {
     const char *var = getenv(varname);
     if (var == NULL) {
@@ -226,9 +226,9 @@ static void print_env_var(struct config *cfg, char *varname,
             exit(1);
         } else if (attrs & ATTR_HAS_DEFAULT) {
             apply_attributes(default_buf, attrs);
-            printf("%s", default_buf);
+            fprintf(cfg->out, "%s", default_buf);
         } else {
-            printf("%s%s%s", cfg->sub_open, varname, cfg->sub_close);
+            fprintf(cfg->out, "%s%s%s", cfg->sub_open, varname, cfg->sub_close);
         }
     } else {
         size_t len = strlen(var);
@@ -241,11 +241,11 @@ static void print_env_var(struct config *cfg, char *varname,
             }
         }
         apply_attributes(var_buf, attrs);
-        printf("%s", var_buf);
+        fprintf(cfg->out, "%s", var_buf);
     }
 }
 
-static void execute_pattern(char *cmd, enum attribute attrs) {
+static void execute_pattern(FILE *f, char *cmd, enum attribute attrs) {
     FILE *child = popen(cmd, "r");
     if (child == NULL) {
         fprintf(stderr, "popen failure for command '%s'\n", cmd);
@@ -261,7 +261,7 @@ static void execute_pattern(char *cmd, enum attribute attrs) {
                 /* Buffer one line so we can drop the last line's '\n'. */
                 if (prev[0] != '\0') {
                     apply_attributes(prev, attrs);
-                    printf("%s", prev);
+                    fprintf(f, "%s", prev);
                 }
                 int len = strlen(line);
                 memcpy(prev, buf, len);
@@ -279,7 +279,7 @@ static void execute_pattern(char *cmd, enum attribute attrs) {
                 }
             }
             apply_attributes(prev, attrs);
-            printf("%s", prev);
+            fprintf(f, "%s", prev);
         }
         pclose(child);
     }

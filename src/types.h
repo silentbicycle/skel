@@ -29,6 +29,7 @@
 
 struct config {
     FILE *template;
+    FILE *out;
     char *skel_path;
     char escape;
     char *sub_open;

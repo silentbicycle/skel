@@ -3,6 +3,6 @@
 
 #include "types.h"
 
-void sub_and_print_line(struct config *cfg, const char *line);
+void sub_and_print_line(const struct config *cfg, const char *line);
 
 #endif
