@@ -26,7 +26,7 @@ typedef uint32_t attr_t;
 
 static void print_env_var(config *cfg, char *varname,
     attr_t attrs, char *default_buf);
-static void execute_pattern(config *cfg, char *cmd, attr_t attrs);
+static void execute_pattern(char *cmd, attr_t attrs);
 static bool process_attribute_char(char c, attr_t *attr);
 static void apply_attributes(char *buf, attr_t attrs);
 
@@ -46,8 +46,8 @@ void sub_line(config *cfg, const char *line) {
     
     const char *sub_open = cfg->sub_open;
     const char *sub_close = cfg->sub_close;
-    const int sub_open_len = strlen(sub_open);
-    const int sub_close_len = strlen(sub_close);
+    const size_t sub_open_len = strlen(sub_open);
+    const size_t sub_close_len = strlen(sub_close);
 
     c = line[input_i];
 
@@ -148,7 +148,7 @@ void sub_line(config *cfg, const char *line) {
             var_buf[var_i] = '\0';
             if (attrs & ATTR_EXECUTE) {
                 if (cfg->exec_patterns) {
-                    execute_pattern(cfg, var_buf, attrs);
+                    execute_pattern(var_buf, attrs);
                 } else {
                     fprintf(stderr, "Execute attribute not enabled, check and run with -x flag.\n");
                 }
@@ -211,7 +211,7 @@ static void print_env_var(config *cfg, char *varname,
     }
 }
 
-static void execute_pattern(config *cfg, char *cmd, attr_t attrs) {
+static void execute_pattern(char *cmd, attr_t attrs) {
     FILE *child = popen(cmd, "r");
     if (child == NULL) {
         fprintf(stderr, "popen failure for command '%s'\n", cmd);

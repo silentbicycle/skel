@@ -56,6 +56,7 @@ static void handle_args(config *cfg, int *argc, char ***argv) {
         switch (f) {
         case 'h':               /* help */
             usage();
+            break;
         case 'o':               /* set substitution opener */
             cfg->sub_open = optarg;
             break;
@@ -77,6 +78,7 @@ static void handle_args(config *cfg, int *argc, char ***argv) {
         case '?':
         default:
             usage();
+            break;
         }
     }
     *argc -= optind;
