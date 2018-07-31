@@ -1,5 +1,12 @@
 # skel Changes By Release
 
+## v0.3.1 2018-07-31
+
+### Other Improvements
+
+Rebuilt the man pages.
+
+
 ## v0.3.0 2018-07-31
 
 ### API Changes
