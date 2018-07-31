@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2012-15 Scott Vokes <vokes.s@gmail.com>
+ * Copyright (c) 2012-18 Scott Vokes <vokes.s@gmail.com>
  *  
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,9 +23,9 @@ static void substitute_template(struct config *cfg);
 static void handle_args(struct config *cfg, int *argc, char ***argv);
 static void read_defaults(struct config *cfg);
 
-/* 0.2.0 */
+/* 0.3.0 */
 #define SKEL_VERSION_MAJOR 0
-#define SKEL_VERSION_MINOR 2
+#define SKEL_VERSION_MINOR 3
 #define SKEL_VERSION_PATCH 0
 
 static void usage(void) {

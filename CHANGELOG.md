@@ -1,6 +1,6 @@
 # skel Changes By Release
 
-## v0.3.0 2018-xx-xx
+## v0.3.0 2018-07-31
 
 ### API Changes
 
