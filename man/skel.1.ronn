@@ -19,6 +19,9 @@ For example,
 will cat TEMPLATE_FILE, replacing instances of `#{HOME}` with the
 contents of `#{HOME}` in the environment.
 
+If TEMPLATE_FILE is a directory, then skel will run `ls -1` on the
+directory (as a convenience) and exit.
+
 
 ## OPTIONS
 
