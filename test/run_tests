@@ -52,7 +52,7 @@ check "undef_#{UNKNOWN}" $(echo "undef_#{::UNKNOWN}" | ${SKEL})
 check "undef_#{UNKNOWN}" $(echo "undef_#{:n:UNKNOWN}" | ${SKEL})
 
 # check default file usage
-check "foobar" $(echo "#{FOO}#{BAR}" | ${SKEL} -d test/example_defaults)
+check "some words,more words" $(echo "#{FOO}#{BAR}" | ${SKEL} -d test/example_defaults)
 
 # commands should not run unless execution is enabled
 check "nothing" $(echo "nothing#{:xn:date +%Y}" | ${SKEL} 2>/dev/null)

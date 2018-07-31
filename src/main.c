@@ -111,7 +111,7 @@ static void read_defaults(config *cfg) {
     while ((line = fgets(buf, BUF_SZ, df))) {
         if (line[0] == '#') { continue; }
         if ((key = strtok(line, " \t\n"))) {
-            if ((value = strtok(NULL, " \t\n"))) {
+            if ((value = strtok(NULL, "\n"))) {
                 if (setenv(key, value, 0) < 0) { err(1, "setenv '%s'", line); }
             }
         }
