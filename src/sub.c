@@ -168,6 +168,7 @@ void sub_and_print_line(struct config *cfg, const char *line) {
             sub_i = 0;
             input_i--;                /* re-process this char */
             mode = MODE_VERBATIM;
+            attrs = ATTR_NONE;
             break;
         }
 
@@ -218,8 +219,7 @@ static void clear(struct buffer *b) {
 
 static void print_env_var(struct config *cfg, char *varname,
         enum attribute attrs, char *default_buf) {
-    char *var = NULL;
-    var = getenv(varname);
+    const char *var = getenv(varname);
     if (var == NULL) {
         if (cfg->abort_on_undef) {
             fprintf(stderr, "Undefined variable: '%s'\n", varname);
@@ -231,14 +231,17 @@ static void print_env_var(struct config *cfg, char *varname,
             printf("%s%s%s", cfg->sub_open, varname, cfg->sub_close);
         }
     } else {
+        size_t len = strlen(var);
+        char var_buf[len + 1];
+        strncpy(var_buf, var, len);
+        var_buf[len] = '\0';
         if (attrs & ATTR_NO_NEWLINE) {
-            int len = strlen(var);
             if (len > 0 && var[len - 1] == '\n') {
-                var[len - 1] = '\0';
+                var_buf[len - 1] = '\0';
             }
         }
-        apply_attributes(var, attrs);
-        printf("%s", var);
+        apply_attributes(var_buf, attrs);
+        printf("%s", var_buf);
     }
 }
 

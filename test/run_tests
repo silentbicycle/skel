@@ -70,13 +70,16 @@ check "undef_blah" $(echo "undef_#{UNKNOWN:blah}" | ${SKEL})
 check "undef_blah" $(echo "undef_#{^%UNKNOWN:blah}^%" | ${SKEL} -o "#{^%" -c "}^%")
 
 # check uppercase attribute
-check "UPPER" $(echo "#{:u:upper}" | env upper=upper ${SKEL})
+check "UPPER upper" $(echo "#{:u:upper} #{upper}" | env upper=upper ${SKEL})
 
 # check lowercase attribute
-check "lower" $(echo "#{:l:LOWER}" | env LOWER=LOWER ${SKEL})
+check "lower LOWER" $(echo "#{:l:LOWER} #{LOWER}" | env LOWER=LOWER ${SKEL})
 
 # check alt expansion opener/closer
 check "foobar" $(echo "%^FOO%^%^BAR%^" | env FOO="foo" BAR="bar" ${SKEL} -o "%^" -c "%^")
 check "foobar" $(echo "%%FOO%%%%BAR%%" | env FOO="foo" BAR="bar" ${SKEL} -o "%%" -c "%%")
+
+# check that default flag is cleared after substitution
+check "undef_blah also_#{UNKNOWN}" $(echo "undef_#{UNKNOWN:blah} also_#{UNKNOWN}" | ${SKEL})
 
 echo tests complete
