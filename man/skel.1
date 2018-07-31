@@ -1,10 +1,10 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "SKEL" "1" "February 2015" "" ""
+.TH "SKEL" "1" "July 2018" "" ""
 .
 .SH "SYNOPSIS"
-skel [\-h] [\-o OPENER] [\-c CLOSER] [\-d FILE] [\-p PATH] [\-e] [\-x] [TEMPLATE]
+skel [\-h] [\-o OPENER] [\-c CLOSER] [\-d FILE] [\-p PATH] [\-e] [\-x] [TEMPLATE] [OUT]
 .
 .SH "DESCRIPTION"
 skel reads a template from stdin or a file given on the command line, replacing expansion patterns with the contents of variables from the environment\.
@@ -24,6 +24,9 @@ $ skel TEMPLATE_FILE
 .
 .P
 will cat TEMPLATE_FILE, replacing instances of \fB#{HOME}\fR with the contents of \fB#{HOME}\fR in the environment\.
+.
+.P
+If TEMPLATE_FILE is a directory, then skel will run \fBls \-1\fR on the directory (as a convenience) and exit\.
 .
 .SH "OPTIONS"
 .
@@ -56,7 +59,13 @@ Exit with an error if variables are undefined; otherwise, undefined variables ar
 Enable execution patterns\. See ATTRIBUTES below\.
 .
 .SH "EXIT STATUS"
-Returns 0 when the template has been output\. Returns 1 if \fB\-e\fR was used and a variable was undefined\. Returns 2 if \fB\-x\fR was used and a command failed to execute\.
+Returns 0 when the template has been output\.
+.
+.P
+Returns 1 if \fB\-e\fR was used and a variable was undefined, a variable name is too long, or a default file could not be read, or the output file could not be opened\.
+.
+.P
+Returns 2 if \fB\-x\fR was used and a command failed to execute\.
 .
 .SH "ENVIRONMENT"
 Since variables are expanded from the shell environment, it\'s easy to pass substitutions to skel using env(1):
@@ -104,7 +113,7 @@ x: Pass expansion body to shell and insert output
 .fi
 .
 .P
-The \'x\' attribute requires \fBskel \-x\fR to avoid accidentally running dangerous commands, and cannot be defaulted\.
+The \'x\' attribute requires \fBskel \-x\fR to avoid accidentally running dangerous commands; it\'s disabled by default\.
 .
 .P
 For example, \fB#{:xn:date +%Y}\fR will expand to the current year (without a trailing newline), and \fB#{:l:PROJNAME}\fR & \fB#{:u:PROJNAME}\fR would expand to the lowercase and uppercase versions of \fB${PROJNAME}\fR\.
@@ -125,13 +134,16 @@ VAR2 another variable
 .IP "" 0
 .
 .P
-and add its definitions to the environment\.
+and add its definitions to the environment before evaluating the template\.
 .
 .SH "BUGS"
 i18n/locale handling is not supported yet\.
 .
+.P
+Variable names are limited to 256 bytes long\.
+.
 .SH "COPYRIGHT"
-\fBskel\fR is Copyright (C) 2012\-15 Scott Vokes \fIvokes\.s@gmail\.com\fR\.
+\fBskel\fR is Copyright (C) 2012\-18 Scott Vokes \fIvokes\.s@gmail\.com\fR\.
 .
 .SH "SEE ALSO"
 cat(1), env(1), environ(7), sh(1)

@@ -23,10 +23,10 @@ static void substitute_template(struct config *cfg);
 static void handle_args(struct config *cfg, int *argc, char ***argv);
 static void read_defaults(struct config *cfg);
 
-/* 0.3.0 */
+/* 0.3.1 */
 #define SKEL_VERSION_MAJOR 0
 #define SKEL_VERSION_MINOR 3
-#define SKEL_VERSION_PATCH 0
+#define SKEL_VERSION_PATCH 1
 
 static void usage(void) {
     fprintf(stderr,
