@@ -1,4 +1,1 @@
-skel
-*.dSYM
-*.o
-README.html
+build/
