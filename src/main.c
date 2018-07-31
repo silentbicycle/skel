@@ -105,12 +105,12 @@ int main(int argc, char **argv) {
 }
 
 static void read_defaults(struct config *cfg) {
-    static char buf[BUF_SZ];
+    static char buf[LINE_BUF_SZ];
     char *line = NULL;
     FILE *df = fopen(cfg->defaults_file, "r");
     char *key = NULL, *value = NULL;
     if (df == NULL) { err(1, "defaults file '%s'", cfg->defaults_file); }
-    while ((line = fgets(buf, BUF_SZ, df))) {
+    while ((line = fgets(buf, sizeof(buf), df))) {
         if (line[0] == '#') { continue; }
         if ((key = strtok(line, " \t\n"))) {
             if ((value = strtok(NULL, "\n"))) {
@@ -123,9 +123,9 @@ static void read_defaults(struct config *cfg) {
 /* Read the template from the file stream, line by line,
  * and print it (with variable substitutions). */
 static void substitute_template(struct config *cfg) {
-    static char buf[BUF_SZ];
-    char *pbuf = NULL;
-    while ((pbuf = fgets(buf, BUF_SZ, cfg->template))) {
-        sub_line(cfg, pbuf);
+    static char tbuf[LINE_BUF_SZ];
+    char *line = NULL;
+    while ((line = fgets(tbuf, sizeof(tbuf), cfg->template))) {
+        sub_and_print_line(cfg, line);
     }
 }

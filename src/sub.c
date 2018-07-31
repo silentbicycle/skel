@@ -25,24 +25,33 @@ enum sub_mode {
     MODE_EXPAND,                /* expand variable / command */
 };
 
+struct buffer {
+    char *buf;
+    size_t i;
+    size_t ceil;
+};
+
 static void print_env_var(struct config *cfg, char *varname,
     enum attribute attrs, char *default_buf);
 static void execute_pattern(char *cmd, enum attribute attrs);
 static bool process_attribute_char(char c, enum attribute *attr);
 static void apply_attributes(char *buf, enum attribute attrs);
 
-void sub_line(struct config *cfg, const char *line) {
-    char buf[BUF_SZ];
-    char var_buf[BUF_SZ];
+static void append(struct buffer *b, char c);
+static void flush(struct buffer *b);
+static void discard(struct buffer *b, size_t len);
+static void clear(struct buffer *b);
+
+void sub_and_print_line(struct config *cfg, const char *line) {
+    char var_buf[VAR_BUF_SZ];
     size_t input_i = 0;
-    size_t buf_i = 0;           /* buffer offset */
     size_t sub_i = 0;           /* substitution marker offset */
     size_t var_i = 0;           /* variable name offset */
     enum sub_mode mode = MODE_VERBATIM;
     char c = '\0';
     enum attribute attrs = ATTR_NONE;
+    struct buffer buf = { .ceil = 0, };
 
-    memset(buf, 0, sizeof(buf));
     memset(var_buf, 0, sizeof(var_buf));
     
     const char *sub_open = cfg->sub_open;
@@ -65,31 +74,25 @@ void sub_line(struct config *cfg, const char *line) {
                 if (sub_i == sub_open_len) {
                     mode = MODE_ATTR_CHECK;
                     sub_i = 0;
-                    /* Truncate opener & flush buffer */
-                    buf[buf_i - sub_open_len + 1] = '\0';
-                    printf("%s", buf);
-                    buf_i = 0;
+                    discard(&buf, sub_open_len - 1);
+                    flush(&buf);
                 } else {
-                    buf[buf_i] = c;
-                    buf_i++;
+                    append(&buf, c);
                 }
             } else if (c == '\\') {
                 mode = MODE_ESCAPE;
                 break;
             } else {
                 sub_i = 0;
-                buf[buf_i] = c;
-                buf_i++;
+                append(&buf, c);
             }
             break;
 
         case MODE_ESCAPE:
             if (c != sub_open[sub_i]) { /* only escape opener */
-                buf[buf_i] = '\\';
-                buf_i++;
+                append(&buf, '\\');
             }
-            buf[buf_i] = c;
-            buf_i++;
+            append(&buf, c);
             mode = MODE_VERBATIM;
             break;
 
@@ -100,6 +103,10 @@ void sub_line(struct config *cfg, const char *line) {
                 var_i = 0;
                 var_buf[var_i] = c;
                 var_i++;
+                if (var_i == VAR_BUF_SZ) {
+                    fprintf(stderr, "Variable name too long\n");
+                    exit(1);
+                }
                 sub_i = 0;
                 mode = MODE_VAR;
             }
@@ -114,7 +121,7 @@ void sub_line(struct config *cfg, const char *line) {
 
         case MODE_VAR:
             if (c == ':' && !(attrs & ATTR_EXECUTE)) {
-                buf_i = 0;
+                clear(&buf);
                 mode = MODE_DEFAULT;
             } else if (c == sub_close[sub_i]) {
                 sub_i++;
@@ -133,15 +140,14 @@ void sub_line(struct config *cfg, const char *line) {
             if (c == sub_close[sub_i]) {
                 sub_i++;
                 if (sub_i == sub_close_len) {
-                    buf[buf_i - sub_close_len + 1] = '\0';
+                    discard(&buf, sub_close_len - 1);
+                    append(&buf, '\0');
                     mode = MODE_EXPAND;
                 } else {
-                    buf[buf_i] = c;
-                    buf_i++;
+                    append(&buf, c);
                 }
             } else {
-                buf[buf_i] = c;
-                buf_i++;
+                append(&buf, c);
             }
             break;
 
@@ -154,13 +160,11 @@ void sub_line(struct config *cfg, const char *line) {
                     fprintf(stderr, "Execute attribute not enabled, check and run with -x flag.\n");
                 }
             } else {
-                if (buf_i > 0) {
-                    attrs |= ATTR_HAS_DEFAULT;
-                }
-                print_env_var(cfg, var_buf, attrs, buf);
+                if (buf.i > 0) { attrs |= ATTR_HAS_DEFAULT; }
+                print_env_var(cfg, var_buf, attrs, buf.buf);
             }
             var_i = 0;
-            buf_i = 0;
+            clear(&buf);
             sub_i = 0;
             input_i--;                /* re-process this char */
             mode = MODE_VERBATIM;
@@ -173,17 +177,43 @@ void sub_line(struct config *cfg, const char *line) {
 
     switch (mode) {
     case MODE_ESCAPE:
-        buf[buf_i] = '\\';
-        buf_i++;
+        append(&buf, '\\');
         /* fall through */
     case MODE_VERBATIM:
-        buf[buf_i] = '\0';
-        printf("%s", buf);  /* flush output buffer */
+        flush(&buf);
         break;
     default:
         fprintf(stderr, "Warning: End of stream in expansion.\n");
         break;
     }
+
+    if (buf.buf != NULL) { free(buf.buf); }
+}
+
+static void append(struct buffer *b, char c) {
+    if (b->i == b->ceil) {
+        size_t nceil = (b->ceil == 0 ? DEF_BUF_SZ : 2*b->ceil);
+        char *nbuf = realloc(b->buf, nceil);
+        assert(nbuf != NULL);
+        b->buf = nbuf;
+        b->ceil = nceil;
+    }
+    b->buf[b->i] = c;
+    b->i++;
+}
+
+static void flush(struct buffer *b) {
+    append(b, '\0');
+    printf("%s", b->buf);
+    clear(b);
+}
+
+static void discard(struct buffer *b, size_t nlen) {
+    b->i -= nlen;
+}
+
+static void clear(struct buffer *b) {
+    b->i = 0;
 }
 
 static void print_env_var(struct config *cfg, char *varname,
@@ -218,10 +248,10 @@ static void execute_pattern(char *cmd, enum attribute attrs) {
         fprintf(stderr, "popen failure for command '%s'\n", cmd);
         exit(2);
     } else {
-        char prev[BUF_SZ];
-        char buf[BUF_SZ];
+        char prev[LINE_BUF_SZ];
+        char buf[LINE_BUF_SZ];
         prev[0] = '\0';
-        buf[BUF_SZ - 1] = '\0';
+        buf[sizeof(buf) - 1] = '\0';
         for (;;) {
             char *line = fgets(buf, sizeof(buf) - 1, child);
             if (line) {
