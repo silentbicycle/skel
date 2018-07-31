@@ -42,12 +42,19 @@ static void usage(void) {
         " -c CLOSER: set substitution close pattern (default \"" DEF_CLOSE_PATTERN "\")\n"
         " -x:        exec expansions with 'x' attribute and insert result.\n"
         "            Example: `echo '#{:xn:date +%%Y}' | skel -x` => \"2015\".\n"
-        "            (Off by default to avoid unexpected commands.)\n"
+        "            (Disabled by default to avoid unexpected commands.)\n"
         " -d FILE:   set defaults file (a file w/ a list of \"KEY rest_of_line\" pairs)\n"
         " -p PATH:   path to skeleton files (closet)\n"
         " -e:        treat undefined variable as an error\n",
         SKEL_VERSION_MAJOR, SKEL_VERSION_MINOR, SKEL_VERSION_PATCH);
     exit(1);
+}
+
+static void check_for_colon(const char *optarg, const char *name) {
+    if (strchr(optarg, ':') != NULL) {
+        fprintf(stderr, "%s cannot contain ':'.\n", name);
+        exit(1);
+    }
 }
 
 static void handle_args(struct config *cfg, int *argc, char ***argv) {
@@ -58,9 +65,11 @@ static void handle_args(struct config *cfg, int *argc, char ***argv) {
             usage();
             break;
         case 'o':               /* set substitution opener */
+            check_for_colon(optarg, "Opener");
             cfg->sub_open = optarg;
             break;
         case 'c':               /* set substitution closer */
+            check_for_colon(optarg, "Closer");
             cfg->sub_close = optarg;
             break;
         case 'd':               /* load defaults file */
