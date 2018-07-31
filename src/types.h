@@ -10,8 +10,11 @@
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
+#include <assert.h>
 
-#define BUF_SZ MAX_INPUT
+#define LINE_BUF_SZ 4096
+#define DEF_BUF_SZ 256
+#define VAR_BUF_SZ 256
 
 #define DEF_OPEN_PATTERN "#{"
 #define DEF_CLOSE_PATTERN "}"
@@ -24,8 +27,9 @@
 #define DEF_SYSTEM_PATH "/usr/local/share/skel"
 #endif
 
-typedef struct {
+struct config {
     FILE *template;
+    FILE *out;
     char *skel_path;
     char escape;
     char *sub_open;
@@ -33,6 +37,6 @@ typedef struct {
     char *defaults_file;
     bool abort_on_undef;
     bool exec_patterns;
-} config;
+};
 
 #endif

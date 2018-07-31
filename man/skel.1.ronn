@@ -3,7 +3,7 @@ skel: command-line templating
 
 ## SYNOPSIS
 
-skel [-h] [-o OPENER] [-c CLOSER] [-d FILE] [-p PATH] [-e] [-x] [TEMPLATE]
+skel [-h] [-o OPENER] [-c CLOSER] [-d FILE] [-p PATH] [-e] [-x] [TEMPLATE] [OUT]
 
 
 ## DESCRIPTION
@@ -18,6 +18,9 @@ For example,
 
 will cat TEMPLATE_FILE, replacing instances of `#{HOME}` with the
 contents of `#{HOME}` in the environment.
+
+If TEMPLATE_FILE is a directory, then skel will run `ls -1` on the
+directory (as a convenience) and exit.
 
 
 ## OPTIONS
@@ -50,7 +53,11 @@ contents of `#{HOME}` in the environment.
 ## EXIT STATUS
 
 Returns 0 when the template has been output.
-Returns 1 if `-e` was used and a variable was undefined.
+
+Returns 1 if `-e` was used and a variable was undefined, a variable
+name is too long, or a default file could not be read, or the
+output file could not be opened.
+
 Returns 2 if `-x` was used and a command failed to execute.
 
 
@@ -94,7 +101,7 @@ expansion opener and closer strings can be changed with `-o` and `-c`
     x: Pass expansion body to shell and insert output
 
 The 'x' attribute requires `skel -x` to avoid accidentally running
-dangerous commands, and cannot be defaulted.
+dangerous commands; it's disabled by default.
 
 For example, `#{:xn:date +%Y}` will expand to the current year (without
 a trailing newline), and `#{:l:PROJNAME}` & `#{:u:PROJNAME}` would
@@ -110,17 +117,19 @@ like:
     # this is a comment
     VAR2 another variable
 
-and add its definitions to the environment.
+and add its definitions to the environment before evaluating the template.
 
 
 ## BUGS
 
 i18n/locale handling is not supported yet.
 
+Variable names are limited to 256 bytes long.
+
 
 ## COPYRIGHT
 
-`skel` is Copyright (C) 2012-15 Scott Vokes <vokes.s@gmail.com>.
+`skel` is Copyright (C) 2012-18 Scott Vokes <vokes.s@gmail.com>.
 
 
 ## SEE ALSO

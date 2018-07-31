@@ -2,7 +2,9 @@
 
 #include "sub.h"
 
-typedef enum {
+#define LOG 0
+
+enum attribute {
     ATTR_LOWERCASE = 0x01,      /* 'l' */
     ATTR_UPPERCASE = 0x02,      /* 'u' */
     ATTR_EXECUTE = 0x04,        /* 'x' */
@@ -10,9 +12,10 @@ typedef enum {
 
     ATTR_HAS_DEFAULT = 0x10,
     ATTR_CASE_MASK = 0x03,
-} attribute;
+    ATTR_NONE = 0x00,
+};
 
-typedef enum {
+enum sub_mode {
     MODE_VERBATIM,              /* pass normal input through */
     MODE_ESCAPE,                /* may be escaping opener */
     MODE_ATTR_CHECK,            /* check for expansion attributes */
@@ -20,42 +23,49 @@ typedef enum {
     MODE_VAR,                   /* read variable name / command */
     MODE_DEFAULT,               /* read default, if any */
     MODE_EXPAND,                /* expand variable / command */
-} sub_mode;
+};
 
-typedef uint32_t attr_t;
+struct buffer {
+    char *buf;
+    size_t i;
+    size_t ceil;
+};
 
-static void print_env_var(config *cfg, char *varname,
-    attr_t attrs, char *default_buf);
-static void execute_pattern(config *cfg, char *cmd, attr_t attrs);
-static bool process_attribute_char(char c, attr_t *attr);
-static void apply_attributes(char *buf, attr_t attrs);
+static void print_env_var(const struct config *cfg, char *varname,
+    enum attribute attrs, char *default_buf);
+static void execute_pattern(FILE *f, char *cmd, enum attribute attrs);
+static bool process_attribute_char(char c, enum attribute *attr);
+static void apply_attributes(char *buf, enum attribute attrs);
 
-void sub_line(config *cfg, const char *line) {
-    char buf[BUF_SZ];
-    char var_buf[BUF_SZ];
+static void append(struct buffer *b, char c);
+static void flush(FILE *f, struct buffer *b);
+static void discard(struct buffer *b, size_t len);
+static void clear(struct buffer *b);
+
+void sub_and_print_line(const struct config *cfg, const char *line) {
+    char var_buf[VAR_BUF_SZ];
     size_t input_i = 0;
-    size_t buf_i = 0;           /* buffer offset */
     size_t sub_i = 0;           /* substitution marker offset */
     size_t var_i = 0;           /* variable name offset */
-    sub_mode mode = MODE_VERBATIM;
+    enum sub_mode mode = MODE_VERBATIM;
     char c = '\0';
-    attr_t attrs = 0;
+    enum attribute attrs = ATTR_NONE;
+    struct buffer buf = { .ceil = 0, };
 
-    memset(buf, 0, sizeof(buf));
     memset(var_buf, 0, sizeof(var_buf));
     
     const char *sub_open = cfg->sub_open;
     const char *sub_close = cfg->sub_close;
-    const int sub_open_len = strlen(sub_open);
-    const int sub_close_len = strlen(sub_close);
+    const size_t sub_open_len = strlen(sub_open);
+    const size_t sub_close_len = strlen(sub_close);
 
     c = line[input_i];
 
     while (c) {
-        if (0) {
+        #if LOG
             fprintf(stderr, "%zd: mode %d, got '%c', buf_i %zd, sub_i %zd, var_i %zd\n",
                 input_i, mode, c, buf_i, sub_i, var_i);
-        }
+        #endif
 
         switch (mode) {
         case MODE_VERBATIM:
@@ -64,31 +74,25 @@ void sub_line(config *cfg, const char *line) {
                 if (sub_i == sub_open_len) {
                     mode = MODE_ATTR_CHECK;
                     sub_i = 0;
-                    /* Truncate opener & flush buffer */
-                    buf[buf_i - sub_open_len + 1] = '\0';
-                    printf("%s", buf);
-                    buf_i = 0;
+                    discard(&buf, sub_open_len - 1);
+                    flush(cfg->out, &buf);
                 } else {
-                    buf[buf_i] = c;
-                    buf_i++;
+                    append(&buf, c);
                 }
             } else if (c == '\\') {
                 mode = MODE_ESCAPE;
                 break;
             } else {
                 sub_i = 0;
-                buf[buf_i] = c;
-                buf_i++;
+                append(&buf, c);
             }
             break;
 
         case MODE_ESCAPE:
             if (c != sub_open[sub_i]) { /* only escape opener */
-                buf[buf_i] = '\\';
-                buf_i++;
+                append(&buf, '\\');
             }
-            buf[buf_i] = c;
-            buf_i++;
+            append(&buf, c);
             mode = MODE_VERBATIM;
             break;
 
@@ -99,6 +103,10 @@ void sub_line(config *cfg, const char *line) {
                 var_i = 0;
                 var_buf[var_i] = c;
                 var_i++;
+                if (var_i == VAR_BUF_SZ) {
+                    fprintf(stderr, "Variable name too long\n");
+                    exit(1);
+                }
                 sub_i = 0;
                 mode = MODE_VAR;
             }
@@ -113,7 +121,7 @@ void sub_line(config *cfg, const char *line) {
 
         case MODE_VAR:
             if (c == ':' && !(attrs & ATTR_EXECUTE)) {
-                buf_i = 0;
+                clear(&buf);
                 mode = MODE_DEFAULT;
             } else if (c == sub_close[sub_i]) {
                 sub_i++;
@@ -132,15 +140,14 @@ void sub_line(config *cfg, const char *line) {
             if (c == sub_close[sub_i]) {
                 sub_i++;
                 if (sub_i == sub_close_len) {
-                    buf[buf_i - sub_close_len + 1] = '\0';
+                    discard(&buf, sub_close_len - 1);
+                    append(&buf, '\0');
                     mode = MODE_EXPAND;
                 } else {
-                    buf[buf_i] = c;
-                    buf_i++;
+                    append(&buf, c);
                 }
             } else {
-                buf[buf_i] = c;
-                buf_i++;
+                append(&buf, c);
             }
             break;
 
@@ -148,21 +155,20 @@ void sub_line(config *cfg, const char *line) {
             var_buf[var_i] = '\0';
             if (attrs & ATTR_EXECUTE) {
                 if (cfg->exec_patterns) {
-                    execute_pattern(cfg, var_buf, attrs);
+                    execute_pattern(cfg->out, var_buf, attrs);
                 } else {
                     fprintf(stderr, "Execute attribute not enabled, check and run with -x flag.\n");
                 }
             } else {
-                if (buf_i > 0) {
-                    attrs |= ATTR_HAS_DEFAULT;
-                }
-                print_env_var(cfg, var_buf, attrs, buf);
+                if (buf.i > 0) { attrs |= ATTR_HAS_DEFAULT; }
+                print_env_var(cfg, var_buf, attrs, buf.buf);
             }
             var_i = 0;
-            buf_i = 0;
+            clear(&buf);
             sub_i = 0;
             input_i--;                /* re-process this char */
             mode = MODE_VERBATIM;
+            attrs = ATTR_NONE;
             break;
         }
 
@@ -172,62 +178,90 @@ void sub_line(config *cfg, const char *line) {
 
     switch (mode) {
     case MODE_ESCAPE:
-        buf[buf_i] = '\\';
-        buf_i++;
+        append(&buf, '\\');
         /* fall through */
     case MODE_VERBATIM:
-        buf[buf_i] = '\0';
-        printf("%s", buf);  /* flush output buffer */
+        flush(cfg->out, &buf);
         break;
     default:
         fprintf(stderr, "Warning: End of stream in expansion.\n");
         break;
     }
+
+    if (buf.buf != NULL) { free(buf.buf); }
 }
 
-static void print_env_var(config *cfg, char *varname,
-        attr_t attrs, char *default_buf) {
-    char *var = NULL;
-    var = getenv(varname);
+static void append(struct buffer *b, char c) {
+    if (b->i == b->ceil) {
+        size_t nceil = (b->ceil == 0 ? DEF_BUF_SZ : 2*b->ceil);
+        char *nbuf = realloc(b->buf, nceil);
+        assert(nbuf != NULL);
+        b->buf = nbuf;
+        b->ceil = nceil;
+    }
+    b->buf[b->i] = c;
+    b->i++;
+}
+
+static void flush(FILE *f, struct buffer *b) {
+    append(b, '\0');
+    fprintf(f, "%s", b->buf);
+    clear(b);
+}
+
+static void discard(struct buffer *b, size_t nlen) {
+    b->i -= nlen;
+}
+
+static void clear(struct buffer *b) {
+    b->i = 0;
+}
+
+static void print_env_var(const struct config *cfg, char *varname,
+        enum attribute attrs, char *default_buf) {
+    const char *var = getenv(varname);
     if (var == NULL) {
         if (cfg->abort_on_undef) {
             fprintf(stderr, "Undefined variable: '%s'\n", varname);
             exit(1);
         } else if (attrs & ATTR_HAS_DEFAULT) {
             apply_attributes(default_buf, attrs);
-            printf("%s", default_buf);
+            fprintf(cfg->out, "%s", default_buf);
         } else {
-            printf("%s%s%s", cfg->sub_open, varname, cfg->sub_close);
+            fprintf(cfg->out, "%s%s%s", cfg->sub_open, varname, cfg->sub_close);
         }
     } else {
+        size_t len = strlen(var);
+        char var_buf[len + 1];
+        strncpy(var_buf, var, len);
+        var_buf[len] = '\0';
         if (attrs & ATTR_NO_NEWLINE) {
-            int len = strlen(var);
             if (len > 0 && var[len - 1] == '\n') {
-                var[len - 1] = '\0';
+                var_buf[len - 1] = '\0';
             }
         }
-        apply_attributes(var, attrs);
-        printf("%s", var);
+        apply_attributes(var_buf, attrs);
+        fprintf(cfg->out, "%s", var_buf);
     }
 }
 
-static void execute_pattern(config *cfg, char *cmd, attr_t attrs) {
+static void execute_pattern(FILE *f, char *cmd, enum attribute attrs) {
     FILE *child = popen(cmd, "r");
     if (child == NULL) {
         fprintf(stderr, "popen failure for command '%s'\n", cmd);
         exit(2);
     } else {
-        char prev[BUF_SZ];
-        char buf[BUF_SZ];
+        char prev[LINE_BUF_SZ];
+        char buf[LINE_BUF_SZ];
         prev[0] = '\0';
-        buf[BUF_SZ - 1] = '\0';
+        buf[sizeof(buf) - 1] = '\0';
         for (;;) {
             char *line = fgets(buf, sizeof(buf) - 1, child);
             if (line) {
                 /* Buffer one line so we can drop the last line's '\n'. */
                 if (prev[0] != '\0') {
                     apply_attributes(prev, attrs);
-                    printf("%s", prev);
+                    fprintf(f, "%s", prev);
                 }
                 int len = strlen(line);
                 memcpy(prev, buf, len);
@@ -245,13 +279,13 @@ static void execute_pattern(config *cfg, char *cmd, attr_t attrs) {
                 }
             }
             apply_attributes(prev, attrs);
-            printf("%s", prev);
+            fprintf(f, "%s", prev);
         }
         pclose(child);
     }
 }
 
-static bool process_attribute_char(char c, attr_t *attrs) {
+static bool process_attribute_char(char c, enum attribute *attrs) {
     switch (c) {
     case 'l':
         *attrs = (*attrs & ~ATTR_CASE_MASK) | ATTR_LOWERCASE;
@@ -274,7 +308,7 @@ static bool process_attribute_char(char c, attr_t *attrs) {
     return true;
 }
 
-static void apply_attributes(char *buf, attr_t attrs) {
+static void apply_attributes(char *buf, enum attribute attrs) {
     if ((attrs & ATTR_CASE_MASK) == 0) { return; }
     size_t i = 0;
     if (attrs & ATTR_UPPERCASE) {

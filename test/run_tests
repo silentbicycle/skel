@@ -1,0 +1,85 @@
+#!/bin/bash
+
+count=0
+
+SKEL=build/skel
+
+if [ "$1" == "-v" ]; then
+    VERBOSE=true
+fi
+
+function check {
+    local exp=$1
+    shift
+    local got=$*
+    if [ "${exp}" != "${got}" ]; then
+        echo "${count}: expected '${exp}', got '${got}'"
+    else
+        if [ "${VERBOSE}" == "true" ]; then
+            echo "${count}: expected '${exp}', got '${got}'"
+        else
+            printf "."
+        fi
+    fi
+    count=$((count+1))
+}
+
+# base case
+check "foo" $(echo "#{FOO}" | env FOO="foo" ${SKEL})
+
+# "skel -" should also read template from stdin
+check "foo" $(echo "#{FOO}" | env FOO="foo" ${SKEL} -)
+
+# allow changing variable markers
+check "foo" $(echo "#{{FOO}}" | env FOO="foo" ${SKEL} -o "#{{" -c "}}")
+
+# substitution should not add superfluous whitespace
+check "foobar" $(echo "#{FOO}#{BAR}" | env FOO="foo" BAR="bar" ${SKEL})
+
+# check escaping
+check '#{FOO} \\foo #{FOO}' $(echo '\#{FOO} \\foo \#{FOO}' | env FOO="foo" ${SKEL})
+
+# preserve escapes not before substitution markers
+check "foo_\_bar" $(echo "#{FOO}_\_bar" | env FOO="foo" ${SKEL})
+
+# check substitution of undef vars
+check "undef_#{UNKNOWN}" $(echo "undef_#{UNKNOWN}" | ${SKEL})
+
+# check substitution of undef vars w/ empty attribute list
+check "undef_#{UNKNOWN}" $(echo "undef_#{::UNKNOWN}" | ${SKEL})
+
+# check substitution of undef vars with attributes
+check "undef_#{UNKNOWN}" $(echo "undef_#{:n:UNKNOWN}" | ${SKEL})
+
+# check default file usage
+check "some words,more words" $(echo "#{FOO}#{BAR}" | ${SKEL} -d test/example_defaults)
+
+# commands should not run unless execution is enabled
+check "nothing" $(echo "nothing#{:xn:date +%Y}" | ${SKEL} 2>/dev/null)
+
+# check command expansion (and delete trailing '\n')
+check `date +%Y` $(echo "#{:xn:date +%Y}" | ${SKEL} -x)
+
+# check substitution of undef vars
+echo "undef_#{UNKNOWN}" | ${SKEL} -e >/dev/null 2>/dev/null && echo "should fail"
+
+# check substitution of default
+check "undef_blah" $(echo "undef_#{UNKNOWN:blah}" | ${SKEL})
+
+# check substitution of default w/ multi-char open/close
+check "undef_blah" $(echo "undef_#{^%UNKNOWN:blah}^%" | ${SKEL} -o "#{^%" -c "}^%")
+
+# check uppercase attribute
+check "UPPER upper" $(echo "#{:u:upper} #{upper}" | env upper=upper ${SKEL})
+
+# check lowercase attribute
+check "lower LOWER" $(echo "#{:l:LOWER} #{LOWER}" | env LOWER=LOWER ${SKEL})
+
+# check alt expansion opener/closer
+check "foobar" $(echo "%^FOO%^%^BAR%^" | env FOO="foo" BAR="bar" ${SKEL} -o "%^" -c "%^")
+check "foobar" $(echo "%%FOO%%%%BAR%%" | env FOO="foo" BAR="bar" ${SKEL} -o "%%" -c "%%")
+
+# check that default flag is cleared after substitution
+check "undef_blah also_#{UNKNOWN}" $(echo "undef_#{UNKNOWN:blah} also_#{UNKNOWN}" | ${SKEL})
+
+echo tests complete
