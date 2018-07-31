@@ -50,7 +50,11 @@ contents of `#{HOME}` in the environment.
 ## EXIT STATUS
 
 Returns 0 when the template has been output.
-Returns 1 if `-e` was used and a variable was undefined.
+
+Returns 1 if `-e` was used and a variable was undefined, a variable
+name is too long, or a default file could not be read, or the
+output file could not be opened.
+
 Returns 2 if `-x` was used and a command failed to execute.
 
 
