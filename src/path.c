@@ -5,7 +5,7 @@
  *   ${SKEL_CLOSET:-~/.dem_bones}/${NAME}
  *   ${SKEL_SYSTEM_CLOSET:-/usr/local/share/skel}/${NAME}
  * */
-FILE *path_open_skel_file(config *cfg, const char *name) {
+FILE *path_open_skel_file(struct config *cfg, const char *name) {
     if (0 == strcmp("-", name)) { return stdin; }
 
     static char pathbuf[PATH_MAX];

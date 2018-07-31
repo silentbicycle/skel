@@ -24,7 +24,7 @@
 #define DEF_SYSTEM_PATH "/usr/local/share/skel"
 #endif
 
-typedef struct {
+struct config {
     FILE *template;
     char *skel_path;
     char escape;
@@ -33,6 +33,6 @@ typedef struct {
     char *defaults_file;
     bool abort_on_undef;
     bool exec_patterns;
-} config;
+};
 
 #endif

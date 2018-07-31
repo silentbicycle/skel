@@ -19,9 +19,9 @@
 #include "sub.h"
 
 static void usage(void);
-static void substitute_template(config *cfg);
-static void handle_args(config *cfg, int *argc, char ***argv);
-static void read_defaults(config *cfg);
+static void substitute_template(struct config *cfg);
+static void handle_args(struct config *cfg, int *argc, char ***argv);
+static void read_defaults(struct config *cfg);
 
 /* 0.2.0 */
 #define SKEL_VERSION_MAJOR 0
@@ -50,7 +50,7 @@ static void usage(void) {
     exit(1);
 }
 
-static void handle_args(config *cfg, int *argc, char ***argv) {
+static void handle_args(struct config *cfg, int *argc, char ***argv) {
     int f = 0;
     while ((f = getopt(*argc, *argv, "ho:c:d:p:ex")) != -1) {
         switch (f) {
@@ -86,7 +86,7 @@ static void handle_args(config *cfg, int *argc, char ***argv) {
 }
 
 int main(int argc, char **argv) {
-    config cfg = {
+    struct config cfg = {
         .sub_open = DEF_OPEN_PATTERN,
         .sub_close = DEF_CLOSE_PATTERN,
         .escape = '\\',
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-static void read_defaults(config *cfg) {
+static void read_defaults(struct config *cfg) {
     static char buf[BUF_SZ];
     char *line = NULL;
     FILE *df = fopen(cfg->defaults_file, "r");
@@ -122,7 +122,7 @@ static void read_defaults(config *cfg) {
 
 /* Read the template from the file stream, line by line,
  * and print it (with variable substitutions). */
-static void substitute_template(config *cfg) {
+static void substitute_template(struct config *cfg) {
     static char buf[BUF_SZ];
     char *pbuf = NULL;
     while ((pbuf = fgets(buf, BUF_SZ, cfg->template))) {

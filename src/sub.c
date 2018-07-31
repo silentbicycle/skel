@@ -2,7 +2,9 @@
 
 #include "sub.h"
 
-typedef enum {
+#define LOG 0
+
+enum attribute {
     ATTR_LOWERCASE = 0x01,      /* 'l' */
     ATTR_UPPERCASE = 0x02,      /* 'u' */
     ATTR_EXECUTE = 0x04,        /* 'x' */
@@ -10,9 +12,10 @@ typedef enum {
 
     ATTR_HAS_DEFAULT = 0x10,
     ATTR_CASE_MASK = 0x03,
-} attribute;
+    ATTR_NONE = 0x00,
+};
 
-typedef enum {
+enum sub_mode {
     MODE_VERBATIM,              /* pass normal input through */
     MODE_ESCAPE,                /* may be escaping opener */
     MODE_ATTR_CHECK,            /* check for expansion attributes */
@@ -20,26 +23,24 @@ typedef enum {
     MODE_VAR,                   /* read variable name / command */
     MODE_DEFAULT,               /* read default, if any */
     MODE_EXPAND,                /* expand variable / command */
-} sub_mode;
+};
 
-typedef uint32_t attr_t;
+static void print_env_var(struct config *cfg, char *varname,
+    enum attribute attrs, char *default_buf);
+static void execute_pattern(char *cmd, enum attribute attrs);
+static bool process_attribute_char(char c, enum attribute *attr);
+static void apply_attributes(char *buf, enum attribute attrs);
 
-static void print_env_var(config *cfg, char *varname,
-    attr_t attrs, char *default_buf);
-static void execute_pattern(char *cmd, attr_t attrs);
-static bool process_attribute_char(char c, attr_t *attr);
-static void apply_attributes(char *buf, attr_t attrs);
-
-void sub_line(config *cfg, const char *line) {
+void sub_line(struct config *cfg, const char *line) {
     char buf[BUF_SZ];
     char var_buf[BUF_SZ];
     size_t input_i = 0;
     size_t buf_i = 0;           /* buffer offset */
     size_t sub_i = 0;           /* substitution marker offset */
     size_t var_i = 0;           /* variable name offset */
-    sub_mode mode = MODE_VERBATIM;
+    enum sub_mode mode = MODE_VERBATIM;
     char c = '\0';
-    attr_t attrs = 0;
+    enum attribute attrs = ATTR_NONE;
 
     memset(buf, 0, sizeof(buf));
     memset(var_buf, 0, sizeof(var_buf));
@@ -52,10 +53,10 @@ void sub_line(config *cfg, const char *line) {
     c = line[input_i];
 
     while (c) {
-        if (0) {
+        #if LOG
             fprintf(stderr, "%zd: mode %d, got '%c', buf_i %zd, sub_i %zd, var_i %zd\n",
                 input_i, mode, c, buf_i, sub_i, var_i);
-        }
+        #endif
 
         switch (mode) {
         case MODE_VERBATIM:
@@ -185,8 +186,8 @@ void sub_line(config *cfg, const char *line) {
     }
 }
 
-static void print_env_var(config *cfg, char *varname,
-        attr_t attrs, char *default_buf) {
+static void print_env_var(struct config *cfg, char *varname,
+        enum attribute attrs, char *default_buf) {
     char *var = NULL;
     var = getenv(varname);
     if (var == NULL) {
@@ -211,7 +212,7 @@ static void print_env_var(config *cfg, char *varname,
     }
 }
 
-static void execute_pattern(char *cmd, attr_t attrs) {
+static void execute_pattern(char *cmd, enum attribute attrs) {
     FILE *child = popen(cmd, "r");
     if (child == NULL) {
         fprintf(stderr, "popen failure for command '%s'\n", cmd);
@@ -251,7 +252,7 @@ static void execute_pattern(char *cmd, attr_t attrs) {
     }
 }
 
-static bool process_attribute_char(char c, attr_t *attrs) {
+static bool process_attribute_char(char c, enum attribute *attrs) {
     switch (c) {
     case 'l':
         *attrs = (*attrs & ~ATTR_CASE_MASK) | ATTR_LOWERCASE;
@@ -274,7 +275,7 @@ static bool process_attribute_char(char c, attr_t *attrs) {
     return true;
 }
 
-static void apply_attributes(char *buf, attr_t attrs) {
+static void apply_attributes(char *buf, enum attribute attrs) {
     if ((attrs & ATTR_CASE_MASK) == 0) { return; }
     size_t i = 0;
     if (attrs & ATTR_UPPERCASE) {
